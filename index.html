@@ -43,6 +43,9 @@
       <button class="page-nav-button" id="resources-tab" type="button" role="tab" aria-selected="false" aria-controls="resources-panel" data-view="resources" tabindex="-1">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5Z"/><path d="M8 7h8M8 11h5"/></svg> Dersler &amp; Hocalar
       </button>
+      <button class="page-nav-button" id="questions-tab" type="button" role="tab" aria-selected="false" aria-controls="question-tracker-panel" data-view="questions" tabindex="-1">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/><path d="M8 12h8m-4-4v8"/></svg> Soru Günlüğü
+      </button>
     </nav>
 
     <main>
@@ -142,6 +145,98 @@
         </aside>
 
         <section class="panel exams-panel" id="exams-panel" data-view="exams">
+          <section class="net-calculator-section" aria-labelledby="net-calculator-title">
+            <div class="net-calculator-heading">
+              <div class="panel-heading-copy">
+                <div class="heading-icon purple-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/><path d="M8 12h8m-4-4v8"/></svg>
+                </div>
+                <div>
+                  <p class="eyebrow">NETİNİ TAKİP ET</p>
+                  <h2 id="net-calculator-title">Net Hesaplama</h2>
+                  <p>Her ders için doğru ve yanlışlarını gir. Net = Doğru − (Yanlış / 4)</p>
+                </div>
+              </div>
+            </div>
+
+            <form id="net-calculator-form" class="net-calculator-form">
+              <div class="net-exam-meta">
+                <div class="form-field">
+                  <label for="net-exam-type">SINAV TÜRÜ</label>
+                  <select id="net-exam-type" required>
+                    <option value="TYT">TYT</option>
+                    <option value="AYT">AYT</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="net-exam-date">DENEME TARİHİ</label>
+                  <input id="net-exam-date" type="date" required>
+                </div>
+              </div>
+
+              <div class="net-subject-grid">
+                <div class="net-subject-head" aria-hidden="true">
+                  <span>DERS</span><span>DOĞRU</span><span>YANLIŞ</span>
+                </div>
+                <div class="net-subject-row">
+                  <label for="net-turkish-correct">Türkçe</label>
+                  <input id="net-turkish-correct" data-subject="turkish" data-answer="correct" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Türkçe doğru sayısı">
+                  <input id="net-turkish-wrong" data-subject="turkish" data-answer="wrong" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Türkçe yanlış sayısı">
+                </div>
+                <div class="net-subject-row">
+                  <label for="net-social-correct">Sosyal</label>
+                  <input id="net-social-correct" data-subject="social" data-answer="correct" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Sosyal doğru sayısı">
+                  <input id="net-social-wrong" data-subject="social" data-answer="wrong" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Sosyal yanlış sayısı">
+                </div>
+                <div class="net-subject-row">
+                  <label for="net-math-correct">Matematik</label>
+                  <input id="net-math-correct" data-subject="math" data-answer="correct" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Matematik doğru sayısı">
+                  <input id="net-math-wrong" data-subject="math" data-answer="wrong" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Matematik yanlış sayısı">
+                </div>
+                <div class="net-subject-row">
+                  <label for="net-science-correct">Fen</label>
+                  <input id="net-science-correct" data-subject="science" data-answer="correct" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Fen doğru sayısı">
+                  <input id="net-science-wrong" data-subject="science" data-answer="wrong" type="number" min="0" step="1" value="0" inputmode="numeric" required aria-label="Fen yanlış sayısı">
+                </div>
+              </div>
+
+              <div class="net-calculator-actions">
+                <p>4 yanlış 1 doğruyu götürür.</p>
+                <button class="primary-button net-calculate-button" type="submit"><span>∑</span> Neti Hesapla</button>
+              </div>
+            </form>
+
+            <section id="net-result" class="net-result" aria-live="polite" hidden>
+              <div class="net-result-header">
+                <div>
+                  <p class="eyebrow">DENEME SONUCUN</p>
+                  <h3 id="net-result-title"></h3>
+                </div>
+                <div class="net-total"><span>TOPLAM NET</span><strong id="net-total-value"></strong></div>
+              </div>
+              <div class="net-result-grid" id="net-result-grid"></div>
+            </section>
+
+            <section class="net-history-section" aria-labelledby="net-history-title">
+              <div class="net-history-heading">
+                <div>
+                  <h3 id="net-history-title">Hesaplama geçmişi</h3>
+                  <p>Kaydettiğin TYT ve AYT sonuçları bu cihazda saklanır.</p>
+                </div>
+                <span class="record-count"><strong id="net-history-count">0</strong> KAYIT</span>
+              </div>
+              <div class="net-history-wrap">
+                <table class="net-history-table">
+                  <thead>
+                    <tr><th>SINAV / TARİH</th><th>TÜRKÇE</th><th>SOSYAL</th><th>MATEMATİK</th><th>FEN</th><th>TOPLAM</th><th aria-label="İşlem"></th></tr>
+                  </thead>
+                  <tbody id="net-history-body"></tbody>
+                </table>
+                <p id="net-history-empty" class="net-history-empty">Henüz hesaplama yok. İlk deneme sonucunu hesaplayıp kaydet.</p>
+              </div>
+            </section>
+          </section>
+
           <div class="panel-heading exam-heading">
             <div class="heading-icon blue-icon" aria-hidden="true">▤</div>
             <div>
@@ -272,6 +367,56 @@
             </div>
             <div id="custom-resources" class="resource-grid"></div>
             <p id="custom-resources-empty" class="resources-empty">Henüz favori eklemedin. Yukarıdaki formdan ilk kaynağını ekleyebilirsin.</p>
+          </section>
+        </section>
+
+        <section class="panel question-tracker-panel" id="question-tracker-panel" data-view="questions" aria-labelledby="question-tracker-title">
+          <div class="question-tracker-header">
+            <div class="panel-heading-copy">
+              <div class="heading-icon purple-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/><path d="M8 12h8m-4-4v8"/></svg>
+              </div>
+              <div>
+                <p class="eyebrow">HER GÜN BİR ADIM</p>
+                <h2 id="question-tracker-title">Günlük Soru Takibi</h2>
+                <p>Çözdüğün soruları kaydet, ilerlemeni gün gün gör.</p>
+              </div>
+            </div>
+          </div>
+
+          <section class="question-tracker-summary" aria-label="Toplam çözülen soru">
+            <div class="question-summary-icon" aria-hidden="true">✓</div>
+            <div>
+              <span>TOPLAM ÇÖZÜLEN SORU</span>
+              <strong id="question-total">0</strong>
+            </div>
+            <span class="question-summary-caption">Tüm zamanlar</span>
+          </section>
+
+          <form id="question-form" class="question-form">
+            <div class="question-form-field">
+              <label for="question-date">TARİH</label>
+              <input id="question-date" type="date" required>
+            </div>
+            <div class="question-form-field">
+              <label for="question-count">ÇÖZÜLEN SORU SAYISI</label>
+              <input id="question-count" type="number" min="0" step="1" inputmode="numeric" placeholder="Örn. 80" required>
+            </div>
+            <button type="submit" class="primary-button question-save-button"><span>+</span> Kaydet</button>
+          </form>
+
+          <section class="question-history" aria-labelledby="question-history-title">
+            <div class="question-history-heading">
+              <div>
+                <h3 id="question-history-title">Günlük geçmiş</h3>
+                <p>Kaydettiğin kayıtlar bu tarayıcıda saklanır.</p>
+              </div>
+              <span class="record-count"><strong id="question-record-count">0</strong> KAYIT</span>
+            </div>
+            <div class="question-history-list-wrap">
+              <ul id="question-history-list" class="question-history-list" aria-live="polite"></ul>
+              <p id="question-history-empty" class="question-history-empty">Henüz kayıt yok. Bugün çözdüğün soruları ekle!</p>
+            </div>
           </section>
         </section>
 

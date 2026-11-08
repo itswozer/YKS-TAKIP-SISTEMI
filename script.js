@@ -4,12 +4,20 @@ const STORAGE_KEYS = {
   notes: "odak-yks-notes",
   tasks: "odak-yks-tasks",
   exams: "odak-yks-exams",
+  calculatedExams: "odak-yks-calculated-exams",
   goals: "odak-yks-goals",
   targetProfile: "odak-yks-target-profile",
-  resources: "odak-yks-resources"
+  resources: "odak-yks-resources",
+  questionLogs: "odak-yks-question-logs"
 };
 
 const DEFAULT_GOALS = { TYT: 100, AYT: 70 };
+const NET_SUBJECTS = [
+  { id: "turkish", label: "Türkçe" },
+  { id: "social", label: "Sosyal" },
+  { id: "math", label: "Matematik" },
+  { id: "science", label: "Fen" }
+];
 const $ = (selector) => document.querySelector(selector);
 const viewAnimationHandlers = new WeakMap();
 const RECOMMENDED_RESOURCES = {
@@ -100,6 +108,43 @@ function isValidExamList(value) {
   );
 }
 
+function isValidCalculatedExamList(value) {
+  return Array.isArray(value) && value.every((exam) =>
+    exam && typeof exam.id === "string" &&
+    (exam.type === "TYT" || exam.type === "AYT") &&
+    typeof exam.date === "string" &&
+    exam.subjects && NET_SUBJECTS.every(({ id }) => {
+      const subject = exam.subjects[id];
+      return subject && Number.isInteger(subject.correct) && subject.correct >= 0 &&
+        Number.isInteger(subject.wrong) && subject.wrong >= 0 &&
+        Number.isFinite(subject.net) &&
+        Math.abs(subject.net - (subject.correct - subject.wrong / 4)) < 0.001;
+    }) &&
+    Number.isFinite(exam.totalNet) &&
+    Math.abs(exam.totalNet - NET_SUBJECTS.reduce((sum, { id }) => sum + exam.subjects[id].net, 0)) < 0.001
+  );
+}
+
+function isValidQuestionLogList(value) {
+  return Array.isArray(value) && value.every((entry) =>
+    entry && typeof entry.id === "string" &&
+    typeof entry.date === "string" &&
+    isValidDateString(entry.date) &&
+    Number.isSafeInteger(entry.count) && entry.count >= 0
+  );
+}
+
+function isValidDateString(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
+}
+
 function loadGoals() {
   const saved = readStorage(STORAGE_KEYS.goals, DEFAULT_GOALS);
   if (!saved || typeof saved !== "object") return { ...DEFAULT_GOALS };
@@ -113,11 +158,15 @@ let tasks = readStorage(STORAGE_KEYS.tasks, []);
 if (!isValidTaskList(tasks)) tasks = [];
 let exams = readStorage(STORAGE_KEYS.exams, []);
 if (!isValidExamList(exams)) exams = [];
+let calculatedExams = readStorage(STORAGE_KEYS.calculatedExams, []);
+if (!isValidCalculatedExamList(calculatedExams)) calculatedExams = [];
 let goals = loadGoals();
 let targetProfile = readStorage(STORAGE_KEYS.targetProfile, null);
 if (!isValidTargetProfile(targetProfile)) targetProfile = null;
 let customResources = readStorage(STORAGE_KEYS.resources, []);
 if (!isValidResourceList(customResources)) customResources = [];
+let questionLogs = readStorage(STORAGE_KEYS.questionLogs, []);
+if (!isValidQuestionLogList(questionLogs)) questionLogs = [];
 
 function formatNumber(value) {
   return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(value);
@@ -138,6 +187,8 @@ function initializeDate() {
     String(today.getMonth() + 1).padStart(2, "0"),
     String(today.getDate()).padStart(2, "0")
   ].join("-");
+  $("#net-exam-date").value = $("#exam-date").value;
+  $("#question-date").value = $("#exam-date").value;
 }
 
 function renderNotes() {
@@ -237,6 +288,209 @@ function renderExams() {
   $("#record-count").textContent = String(exams.length);
   $("#exams-empty").classList.toggle("visible", visibleExams.length === 0);
   $("#exam-table-body").parentElement.hidden = visibleExams.length === 0;
+}
+
+function renderCalculatedExamHistory() {
+  const body = $("#net-history-body");
+  body.replaceChildren();
+
+  const sortedExams = calculatedExams
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  sortedExams.forEach((exam) => {
+    const row = document.createElement("tr");
+    const examCell = document.createElement("td");
+    examCell.className = "net-history-exam-cell";
+    const examType = document.createElement("span");
+    examType.className = `exam-pill ${exam.type.toLowerCase()}-pill`;
+    examType.textContent = exam.type;
+    const examDate = document.createElement("span");
+    examDate.textContent = formatDate(exam.date);
+    examCell.append(examType, examDate);
+    row.append(examCell);
+
+    NET_SUBJECTS.forEach(({ id }) => {
+      const cell = document.createElement("td");
+      cell.textContent = formatNumber(exam.subjects[id].net);
+      row.append(cell);
+    });
+
+    const totalCell = document.createElement("td");
+    totalCell.className = "net-history-total";
+    totalCell.textContent = formatNumber(exam.totalNet);
+    row.append(totalCell);
+
+    const actionCell = document.createElement("td");
+    const removeButton = document.createElement("button");
+    removeButton.className = "delete-button row-delete";
+    removeButton.type = "button";
+    removeButton.textContent = "×";
+    removeButton.setAttribute("aria-label", `${exam.type} ${formatDate(exam.date)} net hesabını sil`);
+    removeButton.addEventListener("click", () => {
+      const updatedExams = calculatedExams.filter((entry) => entry.id !== exam.id);
+      if (!writeStorage(STORAGE_KEYS.calculatedExams, updatedExams)) return;
+      calculatedExams = updatedExams;
+      renderCalculatedExamHistory();
+    });
+    actionCell.append(removeButton);
+    row.append(actionCell);
+    body.append(row);
+  });
+
+  $("#net-history-count").textContent = String(calculatedExams.length);
+  $("#net-history-empty").hidden = calculatedExams.length > 0;
+  $(".net-history-table").hidden = calculatedExams.length === 0;
+}
+
+function renderQuestionHistory() {
+  const list = $("#question-history-list");
+  list.replaceChildren();
+
+  const sortedLogs = questionLogs
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  sortedLogs.forEach((entry) => {
+    const item = document.createElement("li");
+    item.className = "question-history-item";
+
+    const dateIcon = document.createElement("span");
+    dateIcon.className = "question-date-icon";
+    dateIcon.setAttribute("aria-hidden", "true");
+    dateIcon.textContent = "◷";
+
+    const date = document.createElement("time");
+    date.className = "question-history-date";
+    date.dateTime = entry.date;
+    date.textContent = formatDate(entry.date);
+
+    const count = document.createElement("strong");
+    count.className = "question-history-count";
+    count.textContent = `${formatNumber(entry.count)} soru`;
+
+    const removeButton = document.createElement("button");
+    removeButton.className = "question-delete-button";
+    removeButton.type = "button";
+    removeButton.textContent = "×";
+    removeButton.setAttribute("aria-label", `${formatDate(entry.date)} tarihli ${entry.count} soruluk kaydı sil`);
+    removeButton.addEventListener("click", () => {
+      const updatedLogs = questionLogs.filter((log) => log.id !== entry.id);
+      if (!writeStorage(STORAGE_KEYS.questionLogs, updatedLogs)) return;
+      questionLogs = updatedLogs;
+      renderQuestionHistory();
+    });
+
+    item.append(dateIcon, date, count, removeButton);
+    list.append(item);
+  });
+
+  const total = questionLogs.reduce((sum, entry) => sum + entry.count, 0);
+  $("#question-total").textContent = formatNumber(total);
+  $("#question-record-count").textContent = String(questionLogs.length);
+  $("#question-history-empty").hidden = questionLogs.length > 0;
+  list.hidden = questionLogs.length === 0;
+}
+
+function setupQuestionTracker() {
+  $("#question-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const date = $("#question-date").value;
+    const count = Number($("#question-count").value);
+    const countInput = $("#question-count");
+
+    if (!isValidDateString(date)) {
+      window.alert("Lütfen geçerli bir tarih seçin.");
+      $("#question-date").focus();
+      return;
+    }
+
+    if (!Number.isSafeInteger(count) || count < 0) {
+      countInput.setCustomValidity("Soru sayısı sıfır veya daha büyük bir tam sayı olmalıdır.");
+      countInput.reportValidity();
+      return;
+    }
+
+    countInput.setCustomValidity("");
+    const updatedLogs = [...questionLogs, {
+      id: crypto.randomUUID(),
+      date,
+      count
+    }];
+    if (!writeStorage(STORAGE_KEYS.questionLogs, updatedLogs)) return;
+
+    questionLogs = updatedLogs;
+    renderQuestionHistory();
+    countInput.value = "";
+    countInput.focus();
+  });
+
+  $("#question-count").addEventListener("input", (event) => event.target.setCustomValidity(""));
+}
+
+function renderCalculatedExamResult(exam) {
+  $("#net-result-title").textContent = `${exam.type} · ${formatDate(exam.date)}`;
+  $("#net-total-value").textContent = formatNumber(exam.totalNet);
+  const resultGrid = $("#net-result-grid");
+  resultGrid.replaceChildren();
+
+  NET_SUBJECTS.forEach(({ id, label }) => {
+    const card = document.createElement("div");
+    card.className = "net-result-subject";
+    const subjectName = document.createElement("span");
+    subjectName.textContent = label;
+    const subjectNet = document.createElement("strong");
+    subjectNet.textContent = formatNumber(exam.subjects[id].net);
+    card.append(subjectName, subjectNet);
+    resultGrid.append(card);
+  });
+
+  $("#net-result").hidden = false;
+}
+
+function setupNetCalculator() {
+  $("#net-calculator-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const subjects = {};
+    let answeredQuestions = 0;
+    let invalidInput = null;
+    NET_SUBJECTS.forEach(({ id }) => {
+      const correctInput = $(`[data-subject="${id}"][data-answer="correct"]`);
+      const wrongInput = $(`[data-subject="${id}"][data-answer="wrong"]`);
+      const correct = Number(correctInput.value);
+      const wrong = Number(wrongInput.value);
+      if (!Number.isInteger(correct) || correct < 0 || !Number.isInteger(wrong) || wrong < 0) {
+        invalidInput = correctInput;
+        return;
+      }
+
+      answeredQuestions += correct + wrong;
+      subjects[id] = { correct, wrong, net: correct - wrong / 4 };
+    });
+
+    if (invalidInput || answeredQuestions === 0) {
+      window.alert(invalidInput
+        ? "Doğru ve yanlış sayılarını sıfır veya daha büyük tam sayı olarak girin."
+        : "Net hesaplamak için en az bir doğru veya yanlış sayısı girin.");
+      (invalidInput || $("#net-turkish-correct")).focus();
+      return;
+    }
+
+    const exam = {
+      id: crypto.randomUUID(),
+      type: $("#net-exam-type").value,
+      date: $("#net-exam-date").value,
+      subjects,
+      totalNet: NET_SUBJECTS.reduce((sum, { id }) => sum + subjects[id].net, 0)
+    };
+    const updatedExams = [exam, ...calculatedExams];
+    if (!writeStorage(STORAGE_KEYS.calculatedExams, updatedExams)) return;
+
+    calculatedExams = updatedExams;
+    renderCalculatedExamResult(exam);
+    renderCalculatedExamHistory();
+  });
 }
 
 function renderGoal(type) {
@@ -505,6 +759,7 @@ function activateView(view, focusTab = false) {
     $("#welcome-section"),
     $("#exams-panel"),
     $("#resources-panel"),
+    $("#question-tracker-panel"),
     $(".right-column"),
     $(".left-column")
   ];
@@ -566,6 +821,8 @@ function setupNavigation() {
 function initialize() {
   setupResourceManager();
   setupNavigation();
+  setupNetCalculator();
+  setupQuestionTracker();
   activateView("overview");
   initializeDate();
   $("#tyt-target").value = goals.TYT;
@@ -574,6 +831,8 @@ function initialize() {
   renderNotes();
   renderTasks();
   renderExams();
+  renderCalculatedExamHistory();
+  renderQuestionHistory();
   renderStatistics();
   setupEventListeners();
 }
