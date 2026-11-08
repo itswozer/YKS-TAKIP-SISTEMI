@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
+  <title>YKS Paneli | Çalışma ve Takip</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="YKS Paneli ana sayfa">
+        <span class="brand-mark">Y</span>
+        <span>odak<span class="brand-dot">.</span></span>
+      </a>
+      <div class="topbar-center">
+        <span class="live-dot"></span>
+        <span>YKS ÇALIŞMA PANELİ</span>
+      </div>
+      <div class="topbar-date">
+        <span class="date-icon" aria-hidden="true">◷</span>
+        <span id="today-label"></span>
+      </div>
+    </header>
+
+    <nav class="page-nav" aria-label="Ana gezinme" role="tablist">
+      <button class="page-nav-button is-active" id="overview-tab" type="button" role="tab" aria-selected="true" aria-controls="target-card welcome-section average-card goal-panel tip-card" data-view="overview">
+        <span aria-hidden="true">⌂</span> Genel Bakış
+      </button>
+      <button class="page-nav-button" id="exams-tab" type="button" role="tab" aria-selected="false" aria-controls="exams-panel" data-view="exams" tabindex="-1">
+        <span aria-hidden="true">▤</span> Deneme Takibi
+      </button>
+      <button class="page-nav-button" id="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="notes-panel tasks-panel" data-view="workspace" tabindex="-1">
+        <span aria-hidden="true">✎</span> Notlar &amp; Görevler
+      </button>
+      <button class="page-nav-button" id="resources-tab" type="button" role="tab" aria-selected="false" aria-controls="resources-panel" data-view="resources" tabindex="-1">
+        <span aria-hidden="true">▧</span> Dersler &amp; Hocalar
+      </button>
+    </nav>
+
+    <main>
+      <section class="target-card" id="target-card" data-view="overview" aria-labelledby="target-card-title">
+        <div class="target-card-heading">
+          <div class="target-heading-copy">
+            <span class="target-card-icon" aria-hidden="true">✦</span>
+            <div>
+              <p class="eyebrow">ROTANI BELİRLE</p>
+              <h2 id="target-card-title">Hedef ve Motivasyon</h2>
+            </div>
+          </div>
+          <button id="target-edit-button" class="target-edit-button" type="button" hidden>Düzenle</button>
+        </div>
+
+        <form id="target-form" class="target-form">
+          <div class="target-field">
+            <label for="target-university">Target University</label>
+            <input id="target-university" type="text" maxlength="100" placeholder="Örn. Boğaziçi Üniversitesi" autocomplete="organization" required>
+          </div>
+          <div class="target-field">
+            <label for="target-department">Target Department</label>
+            <input id="target-department" type="text" maxlength="100" placeholder="Örn. Bilgisayar Mühendisliği" required>
+          </div>
+          <div class="target-field">
+            <label for="target-net">Target Net</label>
+            <input id="target-net" type="number" min="0" max="300" step="0.25" placeholder="Örn. 100" required>
+          </div>
+          <div class="target-field target-quote-field">
+            <label for="target-quote">Motivation Quote</label>
+            <input id="target-quote" type="text" maxlength="240" placeholder="Seni motive eden sözü yaz..." required>
+          </div>
+          <button class="target-submit-button" type="submit">Hedefleri Güncelle <span aria-hidden="true">↗</span></button>
+        </form>
+
+        <div id="target-summary" class="target-summary" aria-live="polite" hidden>
+          <div class="target-summary-item">
+            <span>Target University</span>
+            <strong id="target-university-value"></strong>
+          </div>
+          <div class="target-summary-item">
+            <span>Target Department</span>
+            <strong id="target-department-value"></strong>
+          </div>
+          <div class="target-summary-item target-net-summary">
+            <span>Target Net</span>
+            <strong><span id="target-net-value"></span><small>net</small></strong>
+          </div>
+          <blockquote class="target-quote">
+            <span class="quote-mark" aria-hidden="true">“</span>
+            <p id="target-quote-value"></p>
+          </blockquote>
+        </div>
+      </section>
+
+      <section class="welcome-row" id="welcome-section" data-view="overview">
+        <div>
+          <p class="eyebrow">BUGÜNÜN ROTASI</p>
+          <h1>Selam, <span class="gradient-text">başarıya hazırsın.</span></h1>
+          <p class="welcome-subtitle">Küçük adımlar, büyük hedefler. Bugün kendin için ne yapacaksın?</p>
+        </div>
+        <div class="focus-badge"><span aria-hidden="true">✦</span> Her gün biraz daha ileri</div>
+      </section>
+
+      <div class="dashboard-grid" id="dashboard-grid">
+        <aside class="left-column">
+          <section class="panel notes-panel" id="notes-panel" data-view="workspace">
+            <div class="panel-heading">
+              <div class="heading-icon purple-icon" aria-hidden="true">✎</div>
+              <div>
+                <h2>Hızlı notlar</h2>
+                <p>Aklındakileri kaybetme</p>
+              </div>
+              <span class="autosave-label"><span class="save-dot"></span> KAYDEDİLDİ</span>
+            </div>
+            <label class="sr-only" for="notes-input">Notlarınız</label>
+            <textarea id="notes-input" placeholder="Bugün aklımda olanlar...&#10;&#10;• Unutmamam gerekenler&#10;• Çalışma planım"></textarea>
+            <div class="panel-foot"><span>Notların bu cihazda saklanır.</span><span id="notes-count">0 karakter</span></div>
+          </section>
+
+          <section class="panel tasks-panel" id="tasks-panel" data-view="workspace">
+            <div class="panel-heading">
+              <div class="heading-icon green-icon" aria-hidden="true">✓</div>
+              <div>
+                <h2>Günlük görevler</h2>
+                <p id="task-progress">Bugünün hedeflerini belirle</p>
+              </div>
+            </div>
+            <form id="task-form" class="inline-form">
+              <label class="sr-only" for="task-input">Yeni görev</label>
+              <input id="task-input" type="text" maxlength="100" placeholder="Yeni görev ekle..." autocomplete="off">
+              <button class="icon-button add-task-button" type="submit" aria-label="Görev ekle">+</button>
+            </form>
+            <ul id="task-list" class="task-list" aria-live="polite"></ul>
+            <div class="empty-state" id="tasks-empty">Henüz görev yok. İlk hedefini ekle!</div>
+          </section>
+        </aside>
+
+        <section class="panel exams-panel" id="exams-panel" data-view="exams">
+          <div class="panel-heading exam-heading">
+            <div class="heading-icon blue-icon" aria-hidden="true">▤</div>
+            <div>
+              <h2>Deneme takibi</h2>
+              <p>Her deneme seni hedefine yaklaştırır</p>
+            </div>
+            <span class="record-count"><strong id="record-count">0</strong> KAYIT</span>
+          </div>
+
+          <form id="exam-form" class="exam-form">
+            <div class="form-field">
+              <label for="exam-type">SINAV TÜRÜ</label>
+              <select id="exam-type" required>
+                <option value="TYT">TYT</option>
+                <option value="AYT">AYT</option>
+              </select>
+            </div>
+            <div class="form-field date-field">
+              <label for="exam-date">DENEME TARİHİ</label>
+              <input id="exam-date" type="date" required>
+            </div>
+            <div class="form-field net-field">
+              <label for="exam-net">TOPLAM NET</label>
+              <input id="exam-net" type="number" min="0" max="300" step="0.25" placeholder="Örn. 78,5" required>
+            </div>
+            <button type="submit" class="primary-button"><span>+</span> Deneme ekle</button>
+          </form>
+
+          <div class="table-toolbar">
+            <div>
+              <h3>Son denemelerin</h3>
+              <p>İlerlemeni düzenli olarak takip et</p>
+            </div>
+            <label class="filter-label" for="exam-filter">FİLTRE
+              <select id="exam-filter" aria-label="Denemeleri sınav türüne göre filtrele">
+                <option value="all">Tümü</option>
+                <option value="TYT">TYT</option>
+                <option value="AYT">AYT</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>SINAV</th><th>TARİH</th><th>TOPLAM NET</th><th aria-label="İşlem"></th></tr>
+              </thead>
+              <tbody id="exam-table-body"></tbody>
+            </table>
+            <div class="empty-state exam-empty" id="exams-empty">
+              <span class="empty-graphic" aria-hidden="true">▤</span>
+              <strong>Henüz deneme kaydı yok</strong>
+              <span>İlk sonucunu ekleyerek ilerlemeni görmeye başla.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel resources-panel" id="resources-panel" data-view="resources">
+          <div class="resources-intro">
+            <p class="eyebrow">REHBER &amp; KAYNAKLAR</p>
+            <h1>Dersler &amp; <span class="gradient-text">Hocalar</span></h1>
+            <p class="welcome-subtitle">Derslere göre kaynakları keşfet, kendi favorilerini listene ekle.</p>
+          </div>
+
+          <section class="resource-manager" aria-labelledby="resource-form-title">
+            <div class="resource-manager-heading">
+              <div>
+                <h2 id="resource-form-title">Kendi kaynaklarını ekle</h2>
+                <p>Favori hoca ve kanallarını bu cihazda sakla.</p>
+              </div>
+              <span class="resource-count"><strong id="resource-count">0</strong> KAYIT</span>
+            </div>
+            <form id="resource-form" class="resource-form">
+              <div class="resource-field">
+                <label for="resource-subject">DERS</label>
+                <select id="resource-subject" required>
+                  <option value="Matematik">Matematik</option>
+                  <option value="Türkçe">Türkçe</option>
+                  <option value="Fizik">Fizik</option>
+                  <option value="Kimya">Kimya</option>
+                  <option value="Biyoloji">Biyoloji</option>
+                  <option value="Tarih">Tarih</option>
+                  <option value="Coğrafya">Coğrafya</option>
+                  <option value="Felsefe">Felsefe</option>
+                  <option value="Diğer">Diğer</option>
+                </select>
+              </div>
+              <div class="resource-field">
+                <label for="resource-name">HOCA / KANAL ADI</label>
+                <input id="resource-name" type="text" maxlength="80" placeholder="Örn. Favori kanalım" required>
+              </div>
+              <div class="resource-field">
+                <label for="resource-description">KISA NOT</label>
+                <input id="resource-description" type="text" maxlength="180" placeholder="Neden favorilerine ekledin?" required>
+              </div>
+              <div class="resource-field resource-url-field">
+                <label for="resource-url">KANAL LİNKİ</label>
+                <input id="resource-url" type="url" maxlength="500" placeholder="https://..." required>
+              </div>
+              <button class="resource-submit-button" type="submit">Favorilere ekle <span aria-hidden="true">+</span></button>
+            </form>
+          </section>
+
+          <section class="subject-section">
+            <div class="subject-section-heading">
+              <div>
+                <h2>Önerilen kaynaklar</h2>
+                <p>Dersini seç, sana uygun anlatımı keşfet.</p>
+              </div>
+            </div>
+            <div class="subject-tabs" role="tablist" aria-label="Kaynakları derse göre filtrele">
+              <button class="subject-tab is-active" id="subject-math-tab" type="button" role="tab" aria-selected="true" aria-controls="recommended-resources" data-subject-filter="Matematik">Matematik</button>
+              <button class="subject-tab" id="subject-turkish-tab" type="button" role="tab" aria-selected="false" aria-controls="recommended-resources" data-subject-filter="Türkçe" tabindex="-1">Türkçe</button>
+              <button class="subject-tab" id="subject-physics-tab" type="button" role="tab" aria-selected="false" aria-controls="recommended-resources" data-subject-filter="Fizik" tabindex="-1">Fizik</button>
+              <button class="subject-tab" id="subject-chemistry-tab" type="button" role="tab" aria-selected="false" aria-controls="recommended-resources" data-subject-filter="Kimya" tabindex="-1">Kimya</button>
+              <button class="subject-tab" id="subject-biology-tab" type="button" role="tab" aria-selected="false" aria-controls="recommended-resources" data-subject-filter="Biyoloji" tabindex="-1">Biyoloji</button>
+              <button class="subject-tab" id="subject-social-tab" type="button" role="tab" aria-selected="false" aria-controls="recommended-resources" data-subject-filter="Sosyal Bilimler" tabindex="-1">Sosyal Bilimler</button>
+            </div>
+            <div id="recommended-resources" class="resource-grid" role="tabpanel" aria-labelledby="subject-math-tab" aria-live="polite"></div>
+          </section>
+
+          <section class="subject-section favorites-section">
+            <div class="subject-section-heading">
+              <div>
+                <h2>Favori hocalarım</h2>
+                <p>Kendi eklediğin kaynaklar derslerine göre listelenir.</p>
+              </div>
+            </div>
+            <div id="custom-resources" class="resource-grid"></div>
+            <p id="custom-resources-empty" class="resources-empty">Henüz favori eklemedin. Yukarıdaki formdan ilk kaynağını ekleyebilirsin.</p>
+          </section>
+        </section>
+
+        <aside class="right-column" data-view="overview">
+          <section class="panel average-card" id="average-card">
+            <div class="stat-topline"><span class="stat-icon cyan-icon" aria-hidden="true">↗</span><span class="stat-caption">GENEL PERFORMANS</span></div>
+            <p class="stat-title">Ortalama net</p>
+            <div class="stat-value"><span id="average-net">0</span><small>net</small></div>
+            <div class="stat-bottom"><span id="average-detail">Henüz veri yok</span><span class="trend-icon" aria-hidden="true">⌁</span></div>
+          </section>
+
+          <section class="panel goal-panel" id="goal-panel">
+            <div class="panel-heading goal-heading">
+              <div class="heading-icon orange-icon" aria-hidden="true">◎</div>
+              <div><h2>Hedeflerin</h2><p>En iyi denemene göre</p></div>
+            </div>
+            <div class="goal-item">
+              <div class="goal-label"><span class="exam-pill tyt-pill">TYT</span><span><strong id="tyt-best">0</strong> <small>/ <span id="tyt-target-label">100</span> net</small></span></div>
+              <div class="progress-track"><div id="tyt-progress" class="progress-fill tyt-fill"></div></div>
+              <div class="goal-foot"><span>Hedef ilerlemesi</span><strong id="tyt-percent">0%</strong></div>
+            </div>
+            <div class="goal-item">
+              <div class="goal-label"><span class="exam-pill ayt-pill">AYT</span><span><strong id="ayt-best">0</strong> <small>/ <span id="ayt-target-label">70</span> net</small></span></div>
+              <div class="progress-track"><div id="ayt-progress" class="progress-fill ayt-fill"></div></div>
+              <div class="goal-foot"><span>Hedef ilerlemesi</span><strong id="ayt-percent">0%</strong></div>
+            </div>
+            <form id="goal-form" class="goal-settings">
+              <label for="tyt-target">TYT hedef</label>
+              <input id="tyt-target" type="number" min="0.25" max="300" step="0.25" aria-label="TYT net hedefi">
+              <label for="ayt-target">AYT hedef</label>
+              <input id="ayt-target" type="number" min="0.25" max="300" step="0.25" aria-label="AYT net hedefi">
+              <button type="submit" class="goal-save">Kaydet</button>
+            </form>
+          </section>
+
+          <section class="tip-card" id="tip-card">
+            <span class="tip-spark" aria-hidden="true">✦</span>
+            <p class="eyebrow">GÜNÜN HATIRLATMASI</p>
+            <p class="tip-copy">“Başlamak için mükemmel olmak zorunda değilsin. Ama mükemmel olmak için başlamalısın.”</p>
+            <span class="tip-author">— Zig Ziglar</span>
+          </section>
+        </aside>
+      </div>
+      <footer class="app-footer"><span>odak<span class="brand-dot">.</span></span><span>Verilerin yalnızca bu tarayıcıda saklanır.</span></footer>
+    </main>
+  </div>
+</body>
+</html>
