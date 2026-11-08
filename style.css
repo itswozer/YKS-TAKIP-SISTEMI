@@ -34,7 +34,7 @@ button, select { cursor: pointer; }
 
 .topbar { height: 76px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(155, 170, 208, .09); }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-family: "Space Grotesk", sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -.7px; }
-.brand-mark { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid rgba(167, 139, 250, .55); border-radius: 9px; color: #c1a8ff; background: rgba(139, 92, 246, .14); font-size: 16px; }
+.brand-mark { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid rgba(167, 139, 250, .55); border-radius: 50%; color: #c1a8ff; background: rgba(139, 92, 246, .14); font-size: 17px; }
 .brand-dot { color: #9e82ff; }
 .topbar-center, .topbar-date { display: flex; align-items: center; gap: 9px; color: #9ca6bd; font-size: 10px; letter-spacing: 1.4px; font-weight: 700; }
 .live-dot, .save-dot { width: 7px; height: 7px; border-radius: 50%; background: #67ddb0; box-shadow: 0 0 10px rgba(103, 221, 176, .65); }
@@ -352,7 +352,7 @@ body {
 .app-shell { width: min(1440px, 100%); padding-right: clamp(16px, 4vw, 56px); padding-left: clamp(16px, 4vw, 56px); }
 .topbar { height: 82px; border-bottom-color: rgba(167, 181, 209, .1); }
 .brand { gap: 11px; font-size: 20px; letter-spacing: -.8px; }
-.brand-mark { width: 34px; height: 34px; border-radius: 11px; box-shadow: 0 0 24px rgba(139, 92, 246, .12); }
+.brand-mark { width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 0 24px rgba(139, 92, 246, .12); font-size: 19px; }
 .topbar-center, .topbar-date { font-family: "Inter", sans-serif; }
 .topbar-center { color: #aeb8ca; font-size: 9px; letter-spacing: 1.7px; }
 .topbar-date { color: #bdc7d8; font-size: 11px; }
