@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   targetProfile: "odak-yks-target-profile",
   resources: "odak-yks-resources",
   questionLogs: "odak-yks-question-logs",
-  theme: "odak-yks-theme"
+  theme: "odak-yks-theme",
+  topicProgress: "odak-yks-topic-progress"
 };
 
 const DEFAULT_GOALS = { TYT: 100, AYT: 70 };
@@ -19,6 +20,106 @@ const NET_SUBJECTS = [
   { id: "math", label: "Matematik" },
   { id: "science", label: "Fen" }
 ];
+const TOPIC_CURRICULUM = {
+  TYT: [
+    { id: "turkish", name: "Türkçe", topics: [
+      "Sözcükte Anlam", "Cümlede Anlam", "Paragraf ve Anlam Bilgisi", "Ses Bilgisi",
+      "Yazım Kuralları", "Noktalama İşaretleri", "Sözcüğün Yapısı / Ekler",
+      "İsimler, Sıfatlar, Zamirler, Zarflar", "Edat, Bağlaç, Ünlem", "Fiiller ve Fiilimsiler",
+      "Cümlenin Ögeleri ve Cümle Türleri", "Anlatım Bozuklukları"
+    ] },
+    { id: "math", name: "Matematik", topics: [
+      "Temel Kavramlar ve Sayılar", "Bölünebilme Kuralları", "EBOB - EKOK", "Rasyonel Sayılar",
+      "Basit Eşitsizlikler", "Mutlak Değer", "Üslü Sayılar", "Köklü Sayılar",
+      "Çarpanlara Ayırma ve Oran-Orantı", "Denklem Çözme",
+      "Problemler (Sayı, Kesir, Yaş, İşçi, Havuz, Yüzde, Kâr-Zarar, Karışım, Hız, Grafik)",
+      "Kümeler ve Mantık", "Fonksiyonlar", "Polinomlar ve Çarpanlara Ayırma",
+      "Permütasyon - Kombinasyon - Binom - Olasılık", "İstatistik"
+    ] },
+    { id: "geometry", name: "Geometri", topics: [
+      "Doğruda ve Üçgende Açılar", "Özel Üçgenler (İkizkenar, Eşkenar, Dik)",
+      "Üçgende Kenarortay, Açıortay ve Benzerlik", "Üçgende Alan",
+      "Çokgenler ve Dörtgenler (Yamuk, Paralelkenar, Eşkenar Dörtgen, Deltoid, Dikdörtgen, Kare)",
+      "Çember ve Daire", "Katı Cisimler (Prizma, Silindir, Koni, Küre)", "Analitik Geometri"
+    ] },
+    { id: "history", name: "Tarih", topics: [
+      "Tarih ve Zaman", "İlk ve Çağlarda Türk Dünyası", "İslam Tarihi ve Uygarlığı",
+      "Türk - İslam Devletleri (10-13. Yüzyıllar)", "Türkiye Tarihi (Selçuklular ve Beylikler)",
+      "Beylikten Devlete Osmanlı Siyaseti (1300-1453)", "Dünya Gücü Osmanlı (1453-1600)",
+      "Osmanlı Devleti'nde Arayış Yılları (17. Yüzyıl)", "18. Yüzyılda Değişim ve Diplomasi",
+      "En Uzun Yüzyıl (19. Yüzyıl)", "20. Yüzyılda Osmanlı Devleti (I. Dünya Savaşı)",
+      "Kurtuluş Savaşı'na Hazırlık Dönemi", "Kurtuluş Savaşı ve Antlaşmalar",
+      "Atatürkçülük ve Türk İnkılabı"
+    ] },
+    { id: "geography", name: "Coğrafya", topics: [
+      "Doğa ve İnsan / Coğrafyanın Konusu", "Dünya'nın Şekli ve Hareketleri", "Coğrafi Konum",
+      "Harita Bilgisi", "Atmosfer ve İklim", "Yer'in Şekli ve İç Kuvvetler / Dış Kuvvetler",
+      "Su, Toprak ve Bitki Varlığı", "Nüfus ve Yerleşme", "Göç ve Şehirleşme",
+      "Türkiye'nin Yerşekilleri ve İklimi", "Ekonomik Faaliyetler ve Ulaşım", "Afetler ve Çevre"
+    ] },
+    { id: "philosophy", name: "Felsefe", topics: [
+      "Felsefenin Konusu ve Alanı", "Bilgi Felsefesi (Epistemoloji)", "Varlık Felsefesi (Ontoloji)",
+      "Ahlak Felsefesi (Etik)", "Din, Sanat ve Siyaset Felsefesi", "Bilim Felsefesi"
+    ] },
+    { id: "religion", name: "Din Kültürü", topics: [
+      "Bilgi ve İnanç", "İbadetler", "Hz. Muhammed'in Hayatı ve Örnekliği", "Vahiy ve Akıl",
+      "İslam Düşüncesinde Yorumlar ve Mezhepler", "Din, Kültür ve Medeniyet / Ahlaki Değerler"
+    ] },
+    { id: "physics", name: "Fizik", topics: [
+      "Fizik Bilimine Giriş", "Madde ve Özellikleri", "Hareket ve Kuvvet", "İş, Güç ve Enerji",
+      "Isı, Sıcaklık ve Genleşme", "Elektromanyetizma ve Elektrik Akımı",
+      "Basınç ve Kaldırma Kuvveti", "Dalgalar", "Optik (Işık ve Yansıma)"
+    ] },
+    { id: "chemistry", name: "Kimya", topics: [
+      "Kimya Bilimi (Simyadan Kimyaya)", "Atom ve Periyodik Sistem",
+      "Kimyasal Türler Arası Etkileşimler", "Maddenin Halleri (Katı, Sıvı, Gaz)",
+      "Doğa ve Kimya / Çevre Kimyası", "Kimyanın Temel Kanunları", "Mol Kavramı",
+      "Kimyasal Hesaplamalar", "Karışımlar", "Asitler, Bazlar ve Tuzlar", "Kimya Her Yerde"
+    ] },
+    { id: "biology", name: "Biyoloji", topics: [
+      "Yaşamın Bilimi Biyoloji (Canlıların Ortak Özellikleri)",
+      "Canlıların Temel Bileşenleri (İnorganik ve Organik)",
+      "Hücre ve Organelleri / Madde Geçişleri", "Canlıların Sınıflandırılması",
+      "Hücre Bölünmeleri (Mitoz ve Mayoz)", "Kalıtımın Genel İlkeleri",
+      "Ekoloji (Ekosistem Ekolojisi ve Güncel Çevre Sorunları)"
+    ] }
+  ],
+  AYT: [
+    { id: "math", name: "Matematik", topics: [
+      "Polinomlar, Çarpanlara Ayırma ve İkinci Dereceden Denklemler",
+      "Karmaşık Sayılar ve Eşitsizlikler", "Parabol", "Trigonometri 1 ve 2", "Logaritma",
+      "Diziler", "Limit ve Süreklilik", "Türev ve Uygulamaları", "İntegral ve Uygulamaları"
+    ] },
+    { id: "physics", name: "Fizik", topics: [
+      "Vektörler ve Bağıl Hareket", "Newton'un Hareket Yasaları",
+      "Bir Boyutta ve İki Boyutta Sabit İvmeli Hareket",
+      "İş, Güç, Enerji ve İtme-Çizgisel Momentum", "Tork, Denge ve Ağırlık Merkezi",
+      "Basit Makineler ve Elektrik Alan - Potansiyel", "Manyetizma ve İndüksiyon",
+      "Alternatif Akım ve Transformatörler",
+      "Çembersel Hareket ve Basit Harmonik Hareket", "Dalga Mekaniği ve Optik Olaylar",
+      "Atom Modelleri, Radyoaktivite ve Modern Fizik"
+    ] },
+    { id: "chemistry", name: "Kimya", topics: [
+      "Modern Atom Teorisi", "Gazlar", "Sıvı Çözeltiler ve Koligatif Özellikler",
+      "Kimyasal Tepkimelerde Enerji", "Kimyasal Tepkimelerde Hız",
+      "Kimyasal Tepkimelerde Denge", "Sulu Çözelti Dengeleri (Asit-Baz, Tampon, Çözünürlük)",
+      "Kimya ve Elektrik (Piller, Elektroliz)",
+      "Karbon Kimyasına Giriş / Organik Kimya (Hidrokarbonlar, Fonksiyonel Gruplar)",
+      "Enerji Kaynakları ve Bilimsel Gelişmeler"
+    ] },
+    { id: "biology", name: "Biyoloji", topics: [
+      "Sinir Sistemi ve Endokrin Sistem", "Duyu Organları", "Destek ve Hareket Sistemi",
+      "Sindirim, Dolaşım ve Solunum Sistemi", "Üriner Sistem (Boşaltım Sistemi)",
+      "Üreme Sistemi ve Embriyonik Gelişim", "Komünite ve Popülasyon Ekolojisi",
+      "Genden Proteine (DNA, RNA, Protein Sentezi)", "Fotosentez ve Kemosentez",
+      "Hücresel Solunum ve Fermentasyon", "Bitki Biyolojisi (Kök, Gövde, Yaprak, Üreme)",
+      "Canlılar ve Çevre / Evrim Tartışmaları"
+    ] }
+  ]
+};
+const TOPIC_IDS = new Set(Object.entries(TOPIC_CURRICULUM).flatMap(([exam, subjects]) =>
+  subjects.flatMap((subject) => subject.topics.map((_, index) => `${exam}:${subject.id}:${index}`))
+));
 const $ = (selector) => document.querySelector(selector);
 const viewAnimationHandlers = new WeakMap();
 const RECOMMENDED_RESOURCES = {
@@ -135,6 +236,12 @@ function isValidQuestionLogList(value) {
   );
 }
 
+function isValidTopicProgress(value) {
+  return Array.isArray(value) && value.every((topicId) =>
+    typeof topicId === "string" && TOPIC_IDS.has(topicId)
+  );
+}
+
 function isValidDateString(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
@@ -168,6 +275,8 @@ let customResources = readStorage(STORAGE_KEYS.resources, []);
 if (!isValidResourceList(customResources)) customResources = [];
 let questionLogs = readStorage(STORAGE_KEYS.questionLogs, []);
 if (!isValidQuestionLogList(questionLogs)) questionLogs = [];
+let completedTopics = readStorage(STORAGE_KEYS.topicProgress, []);
+if (!isValidTopicProgress(completedTopics)) completedTopics = [];
 
 function formatNumber(value) {
   return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(value);
@@ -427,6 +536,149 @@ function setupQuestionTracker() {
   });
 
   $("#question-count").addEventListener("input", (event) => event.target.setCustomValidity(""));
+}
+
+function updateTopicProgress(exam) {
+  const subjects = TOPIC_CURRICULUM[exam];
+  const topicCount = subjects.reduce((total, subject) => total + subject.topics.length, 0);
+  const completed = subjects.reduce((total, subject) => total + subject.topics.filter((_, index) =>
+    completedTopics.includes(`${exam}:${subject.id}:${index}`)
+  ).length, 0);
+  const percent = topicCount ? Math.round((completed / topicCount) * 100) : 0;
+  const overallTrack = $(".topic-overall-progress .topic-progress-track");
+
+  $("#topic-exam-label").textContent = `${exam} GENEL İLERLEME`;
+  $("#topic-overall-percent").textContent = `${percent}%`;
+  $("#topic-overall-count").textContent = `${completed} / ${topicCount} konu tamamlandı`;
+  $("#topic-overall-bar").style.width = `${percent}%`;
+  overallTrack.setAttribute("aria-valuenow", String(percent));
+
+  subjects.forEach((subject) => {
+    const subjectCompleted = subject.topics.filter((_, index) =>
+      completedTopics.includes(`${exam}:${subject.id}:${index}`)
+    ).length;
+    const subjectPercent = subject.topics.length
+      ? Math.round((subjectCompleted / subject.topics.length) * 100)
+      : 0;
+    const card = document.querySelector(`[data-topic-subject="${exam}:${subject.id}"]`);
+    if (!card) return;
+    card.querySelector(".topic-subject-percent").textContent = `${subjectPercent}%`;
+    card.querySelector(".topic-subject-count").textContent = `${subjectCompleted} / ${subject.topics.length}`;
+    card.querySelector(".topic-progress-fill").style.width = `${subjectPercent}%`;
+    card.querySelector(".topic-progress-track").setAttribute("aria-valuenow", String(subjectPercent));
+  });
+}
+
+function renderTopicSubjects(exam) {
+  const container = $("#topic-subjects");
+  container.replaceChildren();
+  container.setAttribute("aria-labelledby", `topic-${exam.toLowerCase()}-tab`);
+
+  TOPIC_CURRICULUM[exam].forEach((subject) => {
+    const card = document.createElement("section");
+    card.className = "topic-subject-card";
+    card.dataset.topicSubject = `${exam}:${subject.id}`;
+
+    const heading = document.createElement("div");
+    heading.className = "topic-subject-heading";
+
+    const title = document.createElement("h3");
+    title.textContent = subject.name;
+
+    const stats = document.createElement("div");
+    stats.className = "topic-subject-stats";
+    const count = document.createElement("span");
+    count.className = "topic-subject-count";
+    count.textContent = `0 / ${subject.topics.length}`;
+    const percent = document.createElement("strong");
+    percent.className = "topic-subject-percent";
+    percent.textContent = "0%";
+    stats.append(count, percent);
+    heading.append(title, stats);
+
+    const progressTrack = document.createElement("div");
+    progressTrack.className = "topic-progress-track topic-subject-track";
+    progressTrack.setAttribute("role", "progressbar");
+    progressTrack.setAttribute("aria-label", `${subject.name} konu ilerlemesi`);
+    progressTrack.setAttribute("aria-valuemin", "0");
+    progressTrack.setAttribute("aria-valuemax", "100");
+    progressTrack.setAttribute("aria-valuenow", "0");
+    const progressFill = document.createElement("span");
+    progressFill.className = "topic-progress-fill";
+    progressTrack.append(progressFill);
+
+    const list = document.createElement("ul");
+    list.className = "topic-checklist";
+    subject.topics.forEach((topic, index) => {
+      const topicId = `${exam}:${subject.id}:${index}`;
+      const item = document.createElement("li");
+      item.className = "topic-checklist-item";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = `topic-${exam.toLowerCase()}-${subject.id}-${index}`;
+      checkbox.dataset.topicId = topicId;
+      checkbox.checked = completedTopics.includes(topicId);
+
+      const label = document.createElement("label");
+      label.htmlFor = checkbox.id;
+      label.textContent = topic;
+      item.append(checkbox, label);
+      list.append(item);
+    });
+
+    card.append(heading, progressTrack, list);
+    container.append(card);
+  });
+
+  updateTopicProgress(exam);
+}
+
+function setupTopicTracker() {
+  const tabs = Array.from(document.querySelectorAll(".topic-exam-tab"));
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((item) => {
+        const isActive = item === tab;
+        item.classList.toggle("is-active", isActive);
+        item.setAttribute("aria-selected", String(isActive));
+        item.tabIndex = isActive ? 0 : -1;
+      });
+      renderTopicSubjects(tab.dataset.exam);
+    });
+
+    tab.addEventListener("keydown", (event) => {
+      let nextIndex;
+      if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+      else if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = tabs.length - 1;
+      else return;
+
+      event.preventDefault();
+      tabs[nextIndex].click();
+      tabs[nextIndex].focus();
+    });
+  });
+
+  $("#topic-subjects").addEventListener("change", (event) => {
+    const checkbox = event.target;
+    if (!checkbox.matches("input[data-topic-id]")) return;
+
+    const topicId = checkbox.dataset.topicId;
+    const updatedTopics = checkbox.checked
+      ? [...completedTopics, topicId]
+      : completedTopics.filter((id) => id !== topicId);
+    if (!writeStorage(STORAGE_KEYS.topicProgress, updatedTopics)) {
+      checkbox.checked = !checkbox.checked;
+      return;
+    }
+
+    completedTopics = updatedTopics;
+    updateTopicProgress(checkbox.dataset.topicId.split(":")[0]);
+  });
+
+  renderTopicSubjects("TYT");
 }
 
 function renderCalculatedExamResult(exam) {
@@ -761,6 +1013,7 @@ function activateView(view, focusTab = false) {
     $("#exams-panel"),
     $("#resources-panel"),
     $("#question-tracker-panel"),
+    $("#topic-tracker-panel"),
     $(".right-column"),
     $(".left-column")
   ];
@@ -859,6 +1112,7 @@ function initialize() {
   setupNavigation();
   setupNetCalculator();
   setupQuestionTracker();
+  setupTopicTracker();
   activateView("overview");
   initializeDate();
   $("#tyt-target").value = goals.TYT;

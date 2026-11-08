@@ -1062,3 +1062,68 @@ main[data-active-view="questions"] .question-tracker-panel { width: 100%; }
 @media (prefers-reduced-motion: no-preference) {
   body, .panel, .target-card, .tip-card, .resource-card, .page-nav, .theme-toggle { transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease; }
 }
+
+main[data-active-view="topics"] #dashboard-grid { display: block; }
+main[data-active-view="topics"] .topic-tracker-panel { width: 100%; }
+.topic-tracker-panel { padding: 28px; }
+.topic-tracker-header { margin-bottom: 22px; }
+.topic-tracker-header .panel-heading-copy { gap: 14px; }
+.topic-tracker-header .heading-icon svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.topic-tracker-header .eyebrow { margin-bottom: 5px; font-size: 8px; }
+.topic-tracker-header h2 { margin: 0 0 5px; font-size: 19px; }
+.topic-tracker-header p:last-child { margin: 0; color: var(--muted); font-size: 11px; }
+.topic-overall-progress { margin-bottom: 19px; padding: 17px 19px; border: 1px solid rgba(167, 139, 250, .2); border-radius: 14px; background: linear-gradient(120deg, rgba(104, 81, 182, .15), rgba(44, 140, 153, .1)), var(--surface); }
+.topic-overall-copy { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 11px; }
+.topic-overall-copy > div { display: grid; gap: 4px; }
+.topic-overall-copy > div > span { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .9px; }
+.topic-overall-copy strong { color: var(--text); font-family: "Inter", sans-serif; font-size: 26px; letter-spacing: -.8px; line-height: 1; }
+.topic-overall-copy > span { color: var(--muted); font-size: 9px; }
+.topic-progress-track { overflow: hidden; height: 8px; border-radius: 999px; background: rgba(112, 127, 154, .2); }
+.topic-progress-fill { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #9a7aff, #4ed2c4); box-shadow: 0 0 13px rgba(111, 175, 231, .28); transition: width .3s ease; }
+.topic-exam-tabs { display: flex; gap: 8px; margin-bottom: 17px; padding: 5px; border: 1px solid var(--panel-border); border-radius: 13px; background: var(--surface-soft); }
+.topic-exam-tab { min-width: 88px; padding: 9px 18px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--muted); font-size: 10px; font-weight: 700; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+.topic-exam-tab:hover { color: var(--text); }
+.topic-exam-tab.is-active { border-color: rgba(167, 139, 250, .25); background: linear-gradient(120deg, rgba(132, 105, 227, .23), rgba(71, 151, 174, .13)); color: var(--text); }
+.topic-exam-tab:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.topic-subject-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
+.topic-subject-card { min-width: 0; padding: 17px; border: 1px solid var(--panel-border); border-radius: 15px; background: linear-gradient(145deg, rgba(22, 31, 54, .74), rgba(15, 22, 40, .72)); box-shadow: inset 0 1px rgba(255,255,255,.025); }
+.topic-subject-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.topic-subject-heading h3 { margin: 0; color: var(--text); font-size: 13px; }
+.topic-subject-stats { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.topic-subject-count { color: var(--muted); font-size: 8px; }
+.topic-subject-percent { color: var(--cyan); font-family: "Inter", sans-serif; font-size: 11px; }
+.topic-subject-track { height: 5px; margin-bottom: 12px; }
+.topic-checklist { display: grid; gap: 2px; padding: 0; margin: 0; list-style: none; }
+.topic-checklist-item { display: grid; grid-template-columns: 17px minmax(0, 1fr); align-items: start; gap: 9px; padding: 7px 6px; border-radius: 8px; transition: background .18s ease; }
+.topic-checklist-item:hover { background: rgba(167, 139, 250, .07); }
+.topic-checklist-item input { width: 15px; height: 15px; margin: 1px 0 0; accent-color: #9a7aff; cursor: pointer; }
+.topic-checklist-item input:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.topic-checklist-item label { color: var(--text-secondary); font-size: 10px; line-height: 1.55; cursor: pointer; }
+.topic-checklist-item input:checked + label { color: var(--text-tertiary); text-decoration: line-through; text-decoration-color: rgba(120, 133, 157, .62); }
+
+:root[data-theme="light"] .topic-overall-progress {
+  border-color: rgba(115, 84, 212, .2);
+  background: linear-gradient(120deg, rgba(115, 84, 212, .07), rgba(22, 131, 145, .06)), rgba(255, 255, 255, .96);
+}
+:root[data-theme="light"] .topic-subject-card { border-color: var(--line); background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(247,249,255,.96)); }
+:root[data-theme="light"] .topic-exam-tabs { border-color: var(--line); background: rgba(255,255,255,.88); }
+:root[data-theme="light"] .topic-exam-tab.is-active { border-color: rgba(115, 84, 212, .22); background: rgba(115, 84, 212, .1); color: #493795; }
+:root[data-theme="light"] .topic-subject-heading h3 { color: var(--text-primary); }
+:root[data-theme="light"] .topic-subject-percent { color: #176d78; }
+:root[data-theme="light"] .topic-checklist-item:hover { background: rgba(115, 84, 212, .06); }
+:root[data-theme="light"] .topic-checklist-item input { accent-color: #7354d4; }
+:root[data-theme="light"] .topic-checklist-item input:checked + label { color: #68758d; }
+
+@media (max-width: 760px) {
+  .topic-tracker-panel { padding: 22px; }
+}
+@media (max-width: 520px) {
+  .topic-tracker-panel { padding: 17px; }
+  .topic-overall-progress { padding: 14px; }
+  .topic-overall-copy strong { font-size: 23px; }
+  .topic-overall-copy > span { max-width: 44%; text-align: right; line-height: 1.5; }
+  .topic-exam-tabs { margin-bottom: 13px; }
+  .topic-exam-tab { flex: 1; }
+  .topic-subject-grid { grid-template-columns: 1fr; gap: 11px; }
+  .topic-subject-card { padding: 15px; }
+}
