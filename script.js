@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   goals: "odak-yks-goals",
   targetProfile: "odak-yks-target-profile",
   resources: "odak-yks-resources",
-  questionLogs: "odak-yks-question-logs"
+  questionLogs: "odak-yks-question-logs",
+  theme: "odak-yks-theme"
 };
 
 const DEFAULT_GOALS = { TYT: 100, AYT: 70 };
@@ -818,7 +819,42 @@ function setupNavigation() {
   });
 }
 
+function setupThemeToggle() {
+  const button = $("#theme-toggle");
+  let theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+
+  try {
+    const savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
+    if (savedTheme === "light" || savedTheme === "dark") theme = savedTheme;
+  } catch (error) {
+    console.error("Tema tercihi okunamadı:", error);
+  }
+
+  const applyTheme = (nextTheme) => {
+    theme = nextTheme;
+    document.documentElement.dataset.theme = theme;
+    const nextLabel = theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç";
+    button.setAttribute("aria-label", nextLabel);
+    button.setAttribute("title", nextLabel);
+    button.setAttribute("aria-pressed", String(theme === "light"));
+    document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f2f5fc" : "#080d18";
+  };
+
+  applyTheme(theme);
+  button.addEventListener("click", () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    applyTheme(nextTheme);
+    try {
+      localStorage.setItem(STORAGE_KEYS.theme, nextTheme);
+    } catch (error) {
+      console.error("Tema tercihi kaydedilemedi:", error);
+      window.alert("Tema değiştirildi ancak tercihiniz tarayıcıya kaydedilemedi.");
+    }
+  });
+}
+
 function initialize() {
+  setupThemeToggle();
   setupResourceManager();
   setupNavigation();
   setupNetCalculator();
