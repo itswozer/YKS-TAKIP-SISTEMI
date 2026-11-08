@@ -1127,3 +1127,115 @@ main[data-active-view="topics"] .topic-tracker-panel { width: 100%; }
   .topic-subject-grid { grid-template-columns: 1fr; gap: 11px; }
   .topic-subject-card { padding: 15px; }
 }
+
+:root[data-theme="light"] button {
+  border-color: rgba(68, 78, 111, .28);
+  box-shadow: 0 4px 6px rgba(24, 34, 62, .13);
+}
+:root[data-theme="light"] button:hover {
+  border-color: rgba(57, 48, 113, .45);
+  box-shadow: 0 6px 12px rgba(24, 34, 62, .2);
+}
+:root[data-theme="light"] .target-submit-button,
+:root[data-theme="light"] .primary-button,
+:root[data-theme="light"] .goal-save {
+  border: 1px solid #493795;
+  background: linear-gradient(135deg, #5946ad, #443184);
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(37, 29, 86, .24);
+}
+:root[data-theme="light"] .target-submit-button:hover,
+:root[data-theme="light"] .primary-button:hover,
+:root[data-theme="light"] .goal-save:hover {
+  border-color: #35256f;
+  background: linear-gradient(135deg, #4a379b, #38276f);
+  color: #fff;
+  box-shadow: 0 6px 12px rgba(37, 29, 86, .3);
+}
+:root[data-theme="light"] .target-submit-button span,
+:root[data-theme="light"] .primary-button span { color: #fff; }
+:root[data-theme="light"] .resource-submit-button,
+:root[data-theme="light"] .icon-button {
+  border: 1px solid #176644;
+  background: linear-gradient(135deg, #21845b, #176644);
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(23, 102, 68, .2);
+}
+:root[data-theme="light"] .resource-submit-button:hover,
+:root[data-theme="light"] .icon-button:hover {
+  border-color: #105437;
+  background: linear-gradient(135deg, #19724d, #105437);
+  color: #fff;
+  box-shadow: 0 6px 12px rgba(23, 102, 68, .27);
+}
+:root[data-theme="light"] .target-edit-button {
+  border: 1px solid #5946ad;
+  background: #5946ad;
+  color: #fff;
+}
+:root[data-theme="light"] .target-edit-button:hover {
+  border-color: #38276f;
+  background: #443184;
+  color: #fff;
+}
+:root[data-theme="light"] .theme-toggle {
+  border: 1px solid rgba(68, 78, 111, .32);
+  background: #fff;
+  color: #493795;
+}
+:root[data-theme="light"] .theme-toggle:hover { background: #f0edfc; color: #38276f; }
+:root[data-theme="light"] .page-nav-button,
+:root[data-theme="light"] .subject-tab,
+:root[data-theme="light"] .topic-exam-tab {
+  border: 1px solid rgba(68, 78, 111, .24);
+  background: rgba(255, 255, 255, .96);
+  color: #3d4962;
+  box-shadow: 0 3px 6px rgba(24, 34, 62, .1);
+}
+:root[data-theme="light"] .page-nav-button:hover,
+:root[data-theme="light"] .subject-tab:hover,
+:root[data-theme="light"] .topic-exam-tab:hover {
+  border-color: rgba(89, 70, 173, .45);
+  background: #f1effb;
+  color: #38276f;
+}
+:root[data-theme="light"] .page-nav-button.is-active,
+:root[data-theme="light"] .subject-tab.is-active,
+:root[data-theme="light"] .topic-exam-tab.is-active {
+  border: 1px solid #493795;
+  background: linear-gradient(135deg, #5946ad, #443184);
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(37, 29, 86, .24);
+}
+:root[data-theme="light"] .page-nav-button.is-active svg { color: #fff; }
+:root[data-theme="light"] .page-nav-button.is-active:hover,
+:root[data-theme="light"] .subject-tab.is-active:hover,
+:root[data-theme="light"] .topic-exam-tab.is-active:hover {
+  border-color: #35256f;
+  background: linear-gradient(135deg, #4a379b, #38276f);
+  color: #fff;
+}
+:root[data-theme="light"] .delete-button,
+:root[data-theme="light"] .question-delete-button,
+:root[data-theme="light"] .resource-delete-button {
+  border: 1px solid rgba(157, 58, 78, .35);
+  background: #fff4f5;
+  color: #96384d;
+  box-shadow: 0 3px 6px rgba(100, 33, 48, .12);
+}
+:root[data-theme="light"] .delete-button:hover,
+:root[data-theme="light"] .question-delete-button:hover,
+:root[data-theme="light"] .resource-delete-button:hover {
+  border-color: #8e2c43;
+  background: #96384d;
+  color: #fff;
+  box-shadow: 0 5px 10px rgba(100, 33, 48, .22);
+}
+:root[data-theme="light"] .task-toggle,
+:root[data-theme="light"] .topic-checklist-item input {
+  box-shadow: none;
+}
+:root[data-theme="light"] .task-toggle:hover,
+:root[data-theme="light"] .topic-checklist-item input:hover {
+  box-shadow: 0 0 0 3px rgba(89, 70, 173, .13);
+}
