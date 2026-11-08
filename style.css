@@ -245,8 +245,8 @@ tbody tr:last-child td { border-bottom: 0; }
 .resource-delete-button:hover { background: rgba(255, 130, 150, .13); }
 .resources-empty { margin: 0; padding: 18px; border: 1px dashed rgba(143, 159, 195, .15); border-radius: 9px; color: var(--faint); text-align: center; font-size: 10px; }
 .resources-empty[hidden] { display: none; }
-.app-footer { display: flex; align-items: center; justify-content: space-between; padding: 23px 2px 18px; color: #606b80; font-size: 9px; }
-.app-footer > span:first-child { color: #94a0b7; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 11px; }
+.app-footer { display: flex; align-items: center; justify-content: center; margin-top: 8px; padding: 20px 2px 22px; border-top: 1px solid var(--panel-border); color: var(--faint); font-size: 10px; text-align: center; }
+.footer-copyright { color: var(--muted); font-weight: 500; line-height: 1.7; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 
 @media (max-width: 1120px) {
@@ -540,7 +540,7 @@ td { padding: 13px 10px; font-size: 11px; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button:active, .page-nav-button:active, .subject-tab:active { transform: scale(.98); }
 :focus-visible { outline: 2px solid rgba(172, 150, 255, .72); outline-offset: 3px; }
-.app-footer { padding-top: 28px; padding-bottom: 22px; font-size: 10px; }
+.app-footer { padding-top: 22px; padding-bottom: 24px; font-size: 10px; }
 
 @media (max-width: 1120px) {
   .app-shell { padding-right: 28px; padding-left: 28px; }
@@ -600,7 +600,7 @@ button:active, .page-nav-button:active, .subject-tab:active { transform: scale(.
   .resource-form { grid-template-columns: 1fr; }
   .resource-submit-button { grid-column: auto; }
   .resource-grid { grid-template-columns: 1fr; }
-  .app-footer { gap: 12px; }
+  .app-footer { justify-content: center; gap: 12px; padding-right: 8px; padding-left: 8px; text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -1053,8 +1053,8 @@ main[data-active-view="questions"] .question-tracker-panel { width: 100%; }
 :root[data-theme="light"] .question-tracker-summary > div:nth-child(2) strong,
 :root[data-theme="light"] .question-history-count { color: #137b86; }
 :root[data-theme="light"] .question-date-icon { background: rgba(115, 84, 212, .1); color: #7054cf; }
-:root[data-theme="light"] .app-footer,
-:root[data-theme="light"] .app-footer > span:first-child { color: var(--text-tertiary); }
+:root[data-theme="light"] .app-footer { border-top-color: var(--line); }
+:root[data-theme="light"] .footer-copyright { color: var(--text-secondary); }
 :root[data-theme="light"] .theme-toggle { background: var(--surface-raised); color: #7054cf; box-shadow: 0 5px 16px rgba(48, 65, 105, .1); }
 :root[data-theme="light"] .theme-icon-sun { display: none; }
 :root[data-theme="light"] .theme-icon-moon { display: block; }
