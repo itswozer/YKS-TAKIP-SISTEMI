@@ -32,20 +32,26 @@ YKS-TAKIP-SISTEMI/
 ├── index.html       # Ana sayfa ve arayüz iskeleti
 ├── style.css        # Tasarım, tema değişkenleri ve stiller
 ├── script.js        # Net hesaplama, soru takibi ve veri yönetimi
+├── backend/         # Express API ve kullanıcı kurulumu
 └── README.md        # Proje dokümantasyonu
+```
 
-## Yerel giri? sistemi
+## Yerel giriş sistemi
 
-1. Backend terminalinde, kullan?c?y? bir kez olu?turduktan sonra sunucuyu ba?lat?n:
+1. VS Code'da proje klasörünü açıp terminalde backend klasörüne geçin:
 
    ```powershell
-   cd "C:\Users\pc\Desktop\kod tasar?mlar?m\backend"
+   cd backend
+   npm.cmd install
+   npm.cmd run setup-user
    npm.cmd start
    ```
 
-2. Bu projeyi VS Code'da a??n ve Live Server ile `index.html` dosyas?n? ba?lat?n. Frontend adresi, backend'in varsay?lan CORS ayar?yla e?le?mesi i?in `http://localhost:5173` olmal?d?r.
-3. Giri? ekran?nda backend i?in belirledi?iniz kullan?c? ad? ve parolay? kullan?n. Sayfa JWT oturumunu do?rular; ??k?? yapt???n?zda taray?c?daki token silinir.
+   `setup-user` komutunu yalnızca ilk kurulumda çalıştırın. Kullanıcı adı ve parolanız backend klasöründeki `.env` dosyasına kaydedilir; bu dosyayı paylaşmayın.
 
-Frontend ba?ka bir portta ?al???yorsa backend'in `.env` dosyas?ndaki `FRONTEND_ORIGIN` de?erini frontend adresine ayarlay?p backend'i yeniden ba?lat?n.
+2. Backend terminalini açık bırakın. Projeyi VS Code'da Live Server ile açın; frontend adresi varsayılan CORS ayarıyla eşleşmesi için `http://localhost:5173` olmalıdır.
+3. Giriş ekranında belirlediğiniz kullanıcı adı ve parola ile oturum açın. Sayfa JWT'yi tarayıcıda saklar, yenilemede sunucuya doğrulatır; çıkış yaptığınızda token silinir.
 
-> Bu ?rnek panel aray?z?n? giri? arkas?nda g?sterir. Panel verileri taray?c?n?n `localStorage` alan?nda tutuldu?u i?in, ger?ek sunucu tarafl? eri?im korumas? sa?lamaz.
+Frontend başka bir portta çalışıyorsa backend'in `.env` dosyasındaki `FRONTEND_ORIGIN` değerini frontend adresine göre ayarlayıp backend'i yeniden başlatın.
+
+> Bu giriş akışı panel arayüzünü gizler. Panel verileri tarayıcının `localStorage` alanında tutulduğu için tek başına gerçek sunucu taraflı erişim koruması sağlamaz.
