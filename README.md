@@ -61,7 +61,7 @@ YKS-TAKIP-SISTEMI/
    - **Root Directory:** `backend`
    - **Build Command:** `npm ci`
    - **Start Command:** `npm start`
-3. Render servisinin **Environment** bölümüne şu değişkenleri ekleyin. `AUTH_USERNAME`, `AUTH_PASSWORD_HASH` ve `JWT_SECRET` değerlerini kendi bilgisayarınızdaki `backend/.env` dosyasından alın; bunları sohbet veya GitHub üzerinden paylaşmayın:
+3. Render servisinin **Environment** bölümüne şu değişkenleri ekleyin. `AUTH_USERNAME`, `AUTH_PASSWORD_HASH` ve `JWT_SECRET` değerlerini `npm run setup-user` komutunu çalıştırdığınız yerel backend klasöründeki `.env` dosyasından alın; bunları sohbet veya GitHub üzerinden paylaşmayın.
    - `AUTH_USERNAME`
    - `AUTH_PASSWORD_HASH`
    - `JWT_SECRET`
