@@ -28,15 +28,22 @@
       <div class="login-mark" aria-hidden="true">🎯</div>
       <p class="eyebrow">HEDEF YKS</p>
       <h1 id="login-title">Tekrar hoş geldin</h1>
-      <p class="login-description">Paneline erişmek için giriş yap.</p>
+      <p class="login-description" id="login-description">Paneline erişmek için giriş yap.</p>
       <form id="login-form" class="login-form">
         <label for="login-username">Kullanıcı adı</label>
         <input id="login-username" name="username" type="text" autocomplete="username" required>
         <label for="login-password">Şifre</label>
         <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <div class="register-only" id="register-fields" hidden>
+          <label for="register-confirm-password">Şifreyi tekrar girin</label>
+          <input id="register-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" disabled>
+          <label for="invite-code">Davet kodu</label>
+          <input id="invite-code" name="inviteCode" type="password" autocomplete="off" disabled>
+        </div>
         <p class="login-message" id="login-message" role="alert" aria-live="polite"></p>
         <button class="login-submit" id="login-submit" type="submit">Giriş Yap</button>
       </form>
+      <button class="auth-mode-toggle" id="auth-mode-toggle" type="button">Davet kodun var mı? Hesap oluştur</button>
       <p class="login-footnote">✦ Kişisel çalışma alanın</p>
     </section>
   </div>
@@ -49,6 +56,7 @@
       <div class="topbar-center">
         <span class="live-dot"></span>
         <span>YKS ÇALIŞMA PANELİ</span>
+        <span class="sync-status" id="sync-status" role="status" aria-live="polite"></span>
       </div>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Açık temaya geç" aria-pressed="false" title="Açık temaya geç">
         <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>

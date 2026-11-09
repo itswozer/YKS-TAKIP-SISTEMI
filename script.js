@@ -14,6 +14,9 @@ const STORAGE_KEYS = {
 };
 const AUTH_TOKEN_KEY = "hedef-yks-auth-token";
 const AUTH_API_URL = document.querySelector('meta[name="api-base-url"]').content.replace(/\/+$/, "");
+let activeAccount = "";
+let syncTimers = new Map();
+let syncStatusElement;
 
 const DEFAULT_GOALS = { TYT: 100, AYT: 70 };
 const NET_SUBJECTS = [
@@ -153,7 +156,7 @@ const RECOMMENDED_RESOURCES = {
 
 function readStorage(key, fallback) {
   try {
-    const stored = localStorage.getItem(key);
+    const stored = localStorage.getItem(getAccountStorageKey(key));
     return stored === null ? fallback : JSON.parse(stored);
   } catch (error) {
     console.error(`"${key}" verisi okunamadı:`, error);
@@ -163,13 +166,70 @@ function readStorage(key, fallback) {
 
 function writeStorage(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    localStorage.setItem(getAccountStorageKey(key), serialized);
+    scheduleDataSync(key, value);
     return true;
   } catch (error) {
     console.error(`"${key}" verisi kaydedilemedi:`, error);
     window.alert("Veriler kaydedilemedi. Tarayıcı depolama alanınızı kontrol edin.");
     return false;
   }
+}
+
+function getAccountStorageKey(key) {
+  return activeAccount ? `hedef-yks:${encodeURIComponent(activeAccount)}:${key}` : key;
+}
+
+function setSyncStatus(text, state = "") {
+  if (!syncStatusElement) return;
+  syncStatusElement.textContent = text;
+  syncStatusElement.dataset.state = state;
+}
+
+function scheduleDataSync(key, value) {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!activeAccount || !token) return;
+  clearTimeout(syncTimers.get(key));
+  setSyncStatus("Kaydediliyor...");
+  syncTimers.set(key, window.setTimeout(async () => {
+    syncTimers.delete(key);
+    try {
+      const response = await fetch(`${AUTH_API_URL}/api/data/${encodeURIComponent(key)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ value })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Veri eşitlenemedi.");
+      setSyncStatus("Kaydedildi", "saved");
+      window.setTimeout(() => setSyncStatus(""), 2500);
+    } catch (error) {
+      console.error("Hesap verisi sunucuya kaydedilemedi:", error);
+      setSyncStatus(error instanceof TypeError ? "Sunucuyla eşitlenemedi" : "Kaydetme hatası", "error");
+    }
+  }, 400));
+}
+
+function loadApplicationData() {
+  tasks = readStorage(STORAGE_KEYS.tasks, []);
+  if (!isValidTaskList(tasks)) tasks = [];
+  exams = readStorage(STORAGE_KEYS.exams, []);
+  if (!isValidExamList(exams)) exams = [];
+  calculatedExams = readStorage(STORAGE_KEYS.calculatedExams, []);
+  if (!isValidCalculatedExamList(calculatedExams)) calculatedExams = [];
+  goals = loadGoals();
+  targetProfile = readStorage(STORAGE_KEYS.targetProfile, null);
+  if (!isValidTargetProfile(targetProfile)) targetProfile = null;
+  customResources = readStorage(STORAGE_KEYS.resources, []);
+  if (!isValidResourceList(customResources)) customResources = [];
+  questionLogs = readStorage(STORAGE_KEYS.questionLogs, []);
+  if (!isValidQuestionLogList(questionLogs)) questionLogs = [];
+  completedTopics = readStorage(STORAGE_KEYS.topicProgress, []);
+  if (!isValidTopicProgress(completedTopics)) completedTopics = [];
 }
 
 function isValidTargetProfile(value) {
@@ -264,21 +324,14 @@ function loadGoals() {
   };
 }
 
-let tasks = readStorage(STORAGE_KEYS.tasks, []);
-if (!isValidTaskList(tasks)) tasks = [];
-let exams = readStorage(STORAGE_KEYS.exams, []);
-if (!isValidExamList(exams)) exams = [];
-let calculatedExams = readStorage(STORAGE_KEYS.calculatedExams, []);
-if (!isValidCalculatedExamList(calculatedExams)) calculatedExams = [];
-let goals = loadGoals();
-let targetProfile = readStorage(STORAGE_KEYS.targetProfile, null);
-if (!isValidTargetProfile(targetProfile)) targetProfile = null;
-let customResources = readStorage(STORAGE_KEYS.resources, []);
-if (!isValidResourceList(customResources)) customResources = [];
-let questionLogs = readStorage(STORAGE_KEYS.questionLogs, []);
-if (!isValidQuestionLogList(questionLogs)) questionLogs = [];
-let completedTopics = readStorage(STORAGE_KEYS.topicProgress, []);
-if (!isValidTopicProgress(completedTopics)) completedTopics = [];
+let tasks = [];
+let exams = [];
+let calculatedExams = [];
+let goals = { ...DEFAULT_GOALS };
+let targetProfile = null;
+let customResources = [];
+let questionLogs = [];
+let completedTopics = [];
 
 function formatNumber(value) {
   return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(value);
@@ -1079,7 +1132,7 @@ function setupThemeToggle() {
   let theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
 
   try {
-    const savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
+    const savedTheme = localStorage.getItem(getAccountStorageKey(STORAGE_KEYS.theme));
     if (savedTheme === "light" || savedTheme === "dark") theme = savedTheme;
   } catch (error) {
     console.error("Tema tercihi okunamadı:", error);
@@ -1100,7 +1153,8 @@ function setupThemeToggle() {
     const nextTheme = theme === "dark" ? "light" : "dark";
     applyTheme(nextTheme);
     try {
-      localStorage.setItem(STORAGE_KEYS.theme, nextTheme);
+      localStorage.setItem(getAccountStorageKey(STORAGE_KEYS.theme), nextTheme);
+      scheduleDataSync(STORAGE_KEYS.theme, nextTheme);
     } catch (error) {
       console.error("Tema tercihi kaydedilemedi:", error);
       window.alert("Tema değiştirildi ancak tercihiniz tarayıcıya kaydedilemedi.");
@@ -1114,7 +1168,15 @@ function setupAuthentication() {
   const form = $("#login-form");
   const message = $("#login-message");
   const submitButton = $("#login-submit");
+  const modeToggle = $("#auth-mode-toggle");
+  const registerFields = $("#register-fields");
+  const confirmPassword = $("#register-confirm-password");
+  const inviteCode = $("#invite-code");
+  const title = $("#login-title");
+  const description = $("#login-description");
+  syncStatusElement = $("#sync-status");
   let appInitialized = false;
+  let mode = "login";
 
   const showLogin = (errorMessage = "") => {
     appShell.hidden = true;
@@ -1132,6 +1194,47 @@ function setupAuthentication() {
     }
   };
 
+  const loadAccountData = async (username, token) => {
+    activeAccount = username.trim().toLowerCase();
+    const response = await fetch(`${AUTH_API_URL}/api/data`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (response.status === 503) {
+      setSyncStatus("Veri eşitleme için veritabanı gerekli", "error");
+      return;
+    }
+    if (!response.ok) {
+      const error = await response.json();
+      if (response.status === 401) localStorage.removeItem(AUTH_TOKEN_KEY);
+      throw new Error(error.error || "Hesap verileri yüklenemedi.");
+    }
+
+    const remoteData = await response.json();
+    let cachedValuesToSync = 0;
+    for (const key of Object.values(STORAGE_KEYS)) {
+      const localKey = getAccountStorageKey(key);
+      if (Object.hasOwn(remoteData, key)) {
+        localStorage.setItem(localKey, JSON.stringify(remoteData[key]));
+      } else {
+        const cachedValue = localStorage.getItem(localKey);
+        if (cachedValue !== null) {
+          try {
+            scheduleDataSync(key, JSON.parse(cachedValue));
+            cachedValuesToSync += 1;
+          } catch (error) {
+            console.error(`"${key}" yerel verisi eşitlenemedi:`, error);
+            localStorage.removeItem(localKey);
+          }
+        }
+      }
+    }
+    if (cachedValuesToSync === 0) {
+      setSyncStatus("Veriler eşitlendi", "saved");
+      window.setTimeout(() => setSyncStatus(""), 2500);
+    }
+  };
+
   const explainConnectionError = (error) => {
     if (error instanceof TypeError) {
       return "Sunucuya bağlanılamadı. Backend'in çalıştığını ve CORS adresini kontrol edin.";
@@ -1139,28 +1242,56 @@ function setupAuthentication() {
     return error.message || "Giriş sırasında bir hata oluştu.";
   };
 
+  modeToggle.addEventListener("click", () => {
+    mode = mode === "login" ? "register" : "login";
+    const registering = mode === "register";
+    registerFields.hidden = !registering;
+    confirmPassword.disabled = !registering;
+    confirmPassword.required = registering;
+    inviteCode.disabled = !registering;
+    inviteCode.required = registering;
+    $("#login-password").setAttribute("autocomplete", registering ? "new-password" : "current-password");
+    title.textContent = registering ? "Hesap oluştur" : "Tekrar hoş geldin";
+    description.textContent = registering
+      ? "Davet kodunu kullanarak kişisel hesabını oluştur."
+      : "Paneline erişmek için giriş yap.";
+    submitButton.textContent = registering ? "Kayıt Ol" : "Giriş Yap";
+    modeToggle.textContent = registering ? "Zaten hesabın var mı? Giriş yap" : "Davet kodun var mı? Hesap oluştur";
+    message.textContent = "";
+    $("#login-password").value = "";
+    confirmPassword.value = "";
+    inviteCode.value = "";
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     message.textContent = "";
     submitButton.disabled = true;
-    submitButton.textContent = "Giriş yapılıyor...";
+    submitButton.textContent = mode === "register" ? "Hesap oluşturuluyor..." : "Giriş yapılıyor...";
 
     try {
-      const response = await fetch(`${AUTH_API_URL}/api/login`, {
+      const password = form.elements.password.value;
+      if (mode === "register" && password !== confirmPassword.value) {
+        throw new Error("Şifreler birbiriyle eşleşmiyor.");
+      }
+
+      const response = await fetch(`${AUTH_API_URL}/api/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: form.elements.username.value.trim(),
-          password: form.elements.password.value
+          password,
+          ...(mode === "register" ? { inviteCode: inviteCode.value.trim() } : {})
         })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Giriş başarısız.");
+      if (!response.ok) throw new Error(data.error || (mode === "register" ? "Kayıt başarısız." : "Giriş başarısız."));
       if (typeof data.token !== "string" || !data.token) {
         throw new Error("Sunucudan geçerli bir oturum anahtarı alınamadı.");
       }
 
       localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      await loadAccountData(data.username || form.elements.username.value, data.token);
       form.reset();
       showApp();
     } catch (error) {
@@ -1169,14 +1300,14 @@ function setupAuthentication() {
       form.elements.password.focus();
     } finally {
       submitButton.disabled = false;
-      submitButton.textContent = "Giriş Yap";
+      submitButton.textContent = mode === "register" ? "Kayıt Ol" : "Giriş Yap";
     }
   });
 
   $("#auth-logout").addEventListener("click", () => {
     try {
       localStorage.removeItem(AUTH_TOKEN_KEY);
-      showLogin("Oturum kapatıldı.");
+      window.location.reload();
     } catch (error) {
       console.error("Oturum bilgisi silinemedi:", error);
       showLogin("Oturum bilgisi silinemedi. Tarayıcı depolama ayarlarını kontrol edin.");
@@ -1203,6 +1334,8 @@ function setupAuthentication() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
+        const account = await response.json();
+        await loadAccountData(account.username, token);
         showApp();
         return;
       }
@@ -1221,6 +1354,7 @@ function setupAuthentication() {
 }
 
 function initialize() {
+  loadApplicationData();
   setupThemeToggle();
   setupResourceManager();
   setupNavigation();
