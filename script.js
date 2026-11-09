@@ -12,6 +12,8 @@ const STORAGE_KEYS = {
   theme: "odak-yks-theme",
   topicProgress: "odak-yks-topic-progress"
 };
+const AUTH_TOKEN_KEY = "hedef-yks-auth-token";
+const AUTH_API_URL = "http://localhost:3000";
 
 const DEFAULT_GOALS = { TYT: 100, AYT: 70 };
 const NET_SUBJECTS = [
@@ -1106,6 +1108,118 @@ function setupThemeToggle() {
   });
 }
 
+function setupAuthentication() {
+  const appShell = $("#app-shell");
+  const loginScreen = $("#login-screen");
+  const form = $("#login-form");
+  const message = $("#login-message");
+  const submitButton = $("#login-submit");
+  let appInitialized = false;
+
+  const showLogin = (errorMessage = "") => {
+    appShell.hidden = true;
+    loginScreen.hidden = false;
+    message.textContent = errorMessage;
+    $("#login-username").focus();
+  };
+
+  const showApp = () => {
+    loginScreen.hidden = true;
+    appShell.hidden = false;
+    if (!appInitialized) {
+      initialize();
+      appInitialized = true;
+    }
+  };
+
+  const explainConnectionError = (error) => {
+    if (error instanceof TypeError) {
+      return "Sunucuya bağlanılamadı. Backend'in çalıştığını ve CORS adresini kontrol edin.";
+    }
+    return error.message || "Giriş sırasında bir hata oluştu.";
+  };
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    message.textContent = "";
+    submitButton.disabled = true;
+    submitButton.textContent = "Giriş yapılıyor...";
+
+    try {
+      const response = await fetch(`${AUTH_API_URL}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: form.elements.username.value.trim(),
+          password: form.elements.password.value
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Giriş başarısız.");
+      if (typeof data.token !== "string" || !data.token) {
+        throw new Error("Sunucudan geçerli bir oturum anahtarı alınamadı.");
+      }
+
+      localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      form.reset();
+      showApp();
+    } catch (error) {
+      form.elements.password.value = "";
+      message.textContent = explainConnectionError(error);
+      form.elements.password.focus();
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = "Giriş Yap";
+    }
+  });
+
+  $("#auth-logout").addEventListener("click", () => {
+    try {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      showLogin("Oturum kapatıldı.");
+    } catch (error) {
+      console.error("Oturum bilgisi silinemedi:", error);
+      showLogin("Oturum bilgisi silinemedi. Tarayıcı depolama ayarlarını kontrol edin.");
+    }
+  });
+
+  async function restoreSession() {
+    let token;
+    try {
+      token = localStorage.getItem(AUTH_TOKEN_KEY);
+    } catch (error) {
+      console.error("Oturum bilgisi okunamadı:", error);
+      showLogin("Tarayıcı oturum bilgisine erişemedi. Depolama ayarlarını kontrol edin.");
+      return;
+    }
+
+    if (!token) {
+      showLogin();
+      return;
+    }
+
+    try {
+      const response = await fetch(`${AUTH_API_URL}/api/check-auth`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showApp();
+        return;
+      }
+      if (response.status !== 401) {
+        throw new Error("Oturum doğrulanamadı. Lütfen tekrar deneyin.");
+      }
+
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      showLogin("Oturum süresi dolmuş. Lütfen tekrar giriş yapın.");
+    } catch (error) {
+      showLogin(explainConnectionError(error));
+    }
+  }
+
+  restoreSession();
+}
+
 function initialize() {
   setupThemeToggle();
   setupResourceManager();
@@ -1127,4 +1241,4 @@ function initialize() {
   setupEventListeners();
 }
 
-initialize();
+setupAuthentication();
