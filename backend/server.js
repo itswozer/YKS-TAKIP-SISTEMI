@@ -8,6 +8,7 @@ const { rateLimit } = require("express-rate-limit");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "127.0.0.1";
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 const AUTH_USERNAME = process.env.AUTH_USERNAME;
 const AUTH_PASSWORD_HASH = process.env.AUTH_PASSWORD_HASH;
@@ -82,6 +83,6 @@ app.get("/api/check-auth", (req, res) => {
   }
 });
 
-app.listen(PORT, "127.0.0.1", () => {
-  console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor.`);
+app.listen(PORT, HOST, () => {
+  console.log(`Sunucu ${PORT} portunda çalışıyor.`);
 });

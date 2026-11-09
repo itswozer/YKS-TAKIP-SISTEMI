@@ -36,7 +36,9 @@ YKS-TAKIP-SISTEMI/
 └── README.md        # Proje dokümantasyonu
 ```
 
-## Yerel giriş sistemi
+## Giriş sistemi ve yayınlama
+
+### Yerelde çalıştırma
 
 1. VS Code'da proje klasörünü açıp terminalde backend klasörüne geçin:
 
@@ -52,6 +54,20 @@ YKS-TAKIP-SISTEMI/
 2. Backend terminalini açık bırakın. Projeyi VS Code'da Live Server ile açın; frontend adresi varsayılan CORS ayarıyla eşleşmesi için `http://localhost:5173` olmalıdır.
 3. Giriş ekranında belirlediğiniz kullanıcı adı ve parola ile oturum açın. Sayfa JWT'yi tarayıcıda saklar, yenilemede sunucuya doğrulatır; çıkış yaptığınızda token silinir.
 
-Frontend başka bir portta çalışıyorsa backend'in `.env` dosyasındaki `FRONTEND_ORIGIN` değerini frontend adresine göre ayarlayıp backend'i yeniden başlatın.
+### GitHub Pages ve Render ile yayınlama
 
-> Bu giriş akışı panel arayüzünü gizler. Panel verileri tarayıcının `localStorage` alanında tutulduğu için tek başına gerçek sunucu taraflı erişim koruması sağlamaz.
+1. GitHub deposunda **Settings → Pages** bölümünden `main` dalının `/(root)` klasörünü yayınlayın. Açılan site adresinizi not edin.
+2. [Render](https://render.com/) üzerinde **New → Web Service** seçip bu GitHub deposuna bağlanın. Ayarları şöyle girin:
+   - **Root Directory:** `backend`
+   - **Build Command:** `npm ci`
+   - **Start Command:** `npm start`
+3. Render servisinin **Environment** bölümüne şu değişkenleri ekleyin. `AUTH_USERNAME`, `AUTH_PASSWORD_HASH` ve `JWT_SECRET` değerlerini kendi bilgisayarınızdaki `backend/.env` dosyasından alın; bunları sohbet veya GitHub üzerinden paylaşmayın:
+   - `AUTH_USERNAME`
+   - `AUTH_PASSWORD_HASH`
+   - `JWT_SECRET`
+   - `HOST`: `0.0.0.0`
+   - `FRONTEND_ORIGIN`: GitHub Pages sitenizin yalnızca origin kısmı. Örneğin `https://itswozer.github.io/YKS-TAKIP-SISTEMI/` için `https://itswozer.github.io` yazın.
+4. Render servisi hazır olduğunda size `https://...onrender.com` biçiminde bir adres verir. `index.html` içindeki `api-base-url` meta etiketinin `content` değerini bu adresle değiştirin (sonunda `/` olmadan), değişikliği GitHub'a gönderin ve Pages'in yeniden yayınlanmasını bekleyin.
+5. Sitenizi açıp giriş yapın. Ücretsiz barındırma servisleri boşta kaldığında uykuya geçebilir; ilk istek yanıtı bu durumda gecikebilir.
+
+> `backend/.env` ve `backend/node_modules` GitHub'a yüklenmemelidir. `.env` içindeki gizli değerleri yalnızca Render'ın Environment ayarlarına kendiniz girin. Bu giriş akışı panel arayüzünü gizler; panel verileri tarayıcının `localStorage` alanında tutulduğu için tek başına gerçek sunucu taraflı erişim koruması sağlamaz.

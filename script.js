@@ -13,7 +13,7 @@ const STORAGE_KEYS = {
   topicProgress: "odak-yks-topic-progress"
 };
 const AUTH_TOKEN_KEY = "hedef-yks-auth-token";
-const AUTH_API_URL = "http://localhost:3000";
+const AUTH_API_URL = document.querySelector('meta[name="api-base-url"]').content.replace(/\/+$/, "");
 
 const DEFAULT_GOALS = { TYT: 100, AYT: 70 };
 const NET_SUBJECTS = [
