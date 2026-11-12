@@ -67,7 +67,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https://images.unsplash.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
-      upgradeInsecureRequests: true,
+      upgradeInsecureRequests: [],
     },
   },
   crossOriginResourcePolicy: { policy: "same-origin" },
