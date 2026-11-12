@@ -1492,24 +1492,12 @@ function setupAuthentication() {
     }
   };
 
-  const loadAccountData = async (username, token) => {
+  const applyAccountData = (username, remoteData) => {
     activeAccount = username.trim().toLowerCase();
-    const response = await fetch(`${AUTH_API_URL}/api/data`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (response.status === 503) {
-      localStorage.setItem(LAST_ACCOUNT_KEY, activeAccount);
-      setSyncStatus("Veri eşitleme için veritabanı gerekli", "error");
-      return;
-    }
-    if (!response.ok) {
-      const error = await response.json();
-      if (response.status === 401) localStorage.removeItem(AUTH_TOKEN_KEY);
-      throw new Error(error.error || "Hesap verileri yüklenemedi.");
+    if (!remoteData || typeof remoteData !== "object" || Array.isArray(remoteData)) {
+      throw new Error("Hesap verileri beklenen biçimde alınamadı.");
     }
 
-    const remoteData = await response.json();
     localStorage.setItem(LAST_ACCOUNT_KEY, activeAccount);
     const pendingKeys = getPendingSyncKeys();
     let cachedValuesToSync = 0;
@@ -1534,6 +1522,26 @@ function setupAuthentication() {
       setSyncStatus("Veriler eşitlendi", "saved");
       window.setTimeout(() => setSyncStatus(""), 2500);
     }
+  };
+
+  const loadAccountData = async (username, token) => {
+    activeAccount = username.trim().toLowerCase();
+    const response = await fetch(`${AUTH_API_URL}/api/data`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (response.status === 503) {
+      localStorage.setItem(LAST_ACCOUNT_KEY, activeAccount);
+      setSyncStatus("Veri eşitleme için veritabanı gerekli", "error");
+      return;
+    }
+    if (!response.ok) {
+      const error = await response.json();
+      if (response.status === 401) localStorage.removeItem(AUTH_TOKEN_KEY);
+      throw new Error(error.error || "Hesap verileri yüklenemedi.");
+    }
+
+    return applyAccountData(username, await response.json());
   };
 
   const explainConnectionError = (error) => {
@@ -1592,7 +1600,17 @@ function setupAuthentication() {
       }
 
       localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-      await loadAccountData(data.username || form.elements.username.value, data.token);
+      if (Object.hasOwn(data, "data")) {
+        activeAccount = (data.username || form.elements.username.value).trim().toLowerCase();
+        if (data.data === null) {
+          localStorage.setItem(LAST_ACCOUNT_KEY, activeAccount);
+          setSyncStatus("Veri eşitleme için veritabanı gerekli", "error");
+        } else {
+          applyAccountData(activeAccount, data.data);
+        }
+      } else {
+        await loadAccountData(data.username || form.elements.username.value, data.token);
+      }
       form.reset();
       updateConnectionNotice();
       showApp();

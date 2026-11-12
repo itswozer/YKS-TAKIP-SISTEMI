@@ -296,7 +296,15 @@ app.post("/api/login", loginLimiter, async (req, res) => {
 
   if (pool) {
     const result = await pool.query(
-      "SELECT id, username, password_hash FROM users WHERE username = $1",
+      `SELECT users.id, users.username, users.password_hash,
+              COALESCE(
+                (SELECT jsonb_object_agg(data_key, value)
+                 FROM user_data
+                 WHERE user_id = users.id),
+                '{}'::jsonb
+              ) AS data
+       FROM users
+       WHERE username = $1`,
       [trimmedUsername.toLowerCase()],
     );
     const user = result.rows[0];
@@ -307,7 +315,13 @@ app.post("/api/login", loginLimiter, async (req, res) => {
     }
 
     clearLoginFailure(req, trimmedUsername);
-    return res.json({ token: createToken(user), tokenType: "Bearer", expiresIn: 3600, username: user.username });
+    return res.json({
+      token: createToken(user),
+      tokenType: "Bearer",
+      expiresIn: 3600,
+      username: user.username,
+      data: user.data,
+    });
   }
 
   const passwordMatches = await bcrypt.compare(password, AUTH_PASSWORD_HASH);
@@ -328,6 +342,7 @@ app.post("/api/login", loginLimiter, async (req, res) => {
     tokenType: "Bearer",
     expiresIn: 3600,
     username: AUTH_USERNAME,
+    data: null,
   });
 });
 

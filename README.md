@@ -74,6 +74,7 @@ YKS-TAKIP-SISTEMI/
 
 2. Backend terminalini açık bırakın. Projeyi VS Code'da Live Server ile açın; frontend adresi varsayılan CORS ayarıyla eşleşmesi için `http://localhost:5173` olmalıdır.
 3. Giriş ekranında belirlediğiniz kullanıcı adı ve parola ile oturum açın. Sayfa JWT'yi tarayıcıda saklar, yenilemede sunucuya doğrulatır; çıkış yaptığınızda token silinir.
+4. Giriş yanıtı ilk bulut verilerini de içerir; panel açılırken ayrıca veri indirme isteği beklenmez.
 
 ### GitHub Pages ve Render ile yayınlama
 
