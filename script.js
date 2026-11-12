@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
 const AUTH_TOKEN_KEY = "hedef-yks-auth-token";
 const LAST_ACCOUNT_KEY = "hedef-yks-last-account";
 const PENDING_SYNC_KEY = "hedef-yks-pending-sync";
+const NOTIFICATION_SETTINGS_KEY = "hedef-yks-notification-settings";
 const AUTH_API_URL = document.querySelector('meta[name="api-base-url"]').content.replace(/\/+$/, "");
 let activeAccount = "";
 let syncTimers = new Map();
@@ -1122,6 +1123,194 @@ function setupEventListeners() {
   });
 }
 
+function setupNotificationReminders() {
+  const toggleButton = $("#notification-toggle");
+  const timeInput = $("#notification-time");
+  const status = $("#notification-status");
+  if (!toggleButton || !timeInput || !status) return;
+
+  let timer;
+  let settings = { enabled: false, time: "18:00", lastSentDate: "" };
+
+  const readSettings = () => {
+    try {
+      const saved = localStorage.getItem(getAccountStorageKey(NOTIFICATION_SETTINGS_KEY));
+      if (saved === null) return;
+      const parsed = JSON.parse(saved);
+      if (
+        !parsed
+        || typeof parsed.enabled !== "boolean"
+        || typeof parsed.time !== "string"
+        || !/^([01]\d|2[0-3]):[0-5]\d$/.test(parsed.time)
+        || typeof parsed.lastSentDate !== "string"
+      ) {
+        throw new Error("Bildirim ayarları geçersiz biçimde kaydedilmiş.");
+      }
+      settings = parsed;
+    } catch (error) {
+      console.error("Bildirim ayarları okunamadı:", error);
+      status.textContent = "Bildirim ayarları okunamadı";
+      status.dataset.state = "error";
+    }
+  };
+
+  const saveSettings = () => {
+    try {
+      localStorage.setItem(getAccountStorageKey(NOTIFICATION_SETTINGS_KEY), JSON.stringify(settings));
+      return true;
+    } catch (error) {
+      console.error("Bildirim ayarları kaydedilemedi:", error);
+      status.textContent = "Ayarlar kaydedilemedi; depolama alanını kontrol et.";
+      status.dataset.state = "error";
+      return false;
+    }
+  };
+
+  const updateControls = () => {
+    timeInput.value = settings.time;
+    timeInput.disabled = !settings.enabled;
+    toggleButton.textContent = settings.enabled ? "Bildirimleri kapat" : "Bildirimleri etkinleştir";
+    toggleButton.dataset.enabled = String(settings.enabled);
+  };
+
+  const getNextReminder = () => {
+    const [hours, minutes] = settings.time.split(":").map(Number);
+    const next = new Date();
+    next.setHours(hours, minutes, 0, 0);
+    if (next.getTime() <= Date.now()) next.setDate(next.getDate() + 1);
+    return next;
+  };
+
+  const getLocalDateKey = (date) => [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+
+  const showReminder = async () => {
+    if (!settings.enabled || Notification.permission !== "granted") return;
+    const dateKey = getLocalDateKey(new Date());
+    if (settings.lastSentDate === dateKey) return;
+
+    try {
+      const title = "Hedef YKS çalışma zamanı";
+      const options = {
+        body: "Bugünkü çalışma hedeflerine göz at. Küçük bir adım bile ilerlemedir.",
+        icon: new URL("icon.svg", document.baseURI).href,
+        badge: new URL("icon.svg", document.baseURI).href,
+        tag: "hedef-yks-daily-reminder",
+      };
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, options);
+      } else {
+        new Notification(title, options);
+      }
+      settings.lastSentDate = dateKey;
+      saveSettings();
+      status.textContent = `Günlük hatırlatıcı açık · ${settings.time}`;
+      status.dataset.state = "saved";
+    } catch (error) {
+      console.error("Hatırlatma bildirimi gösterilemedi:", error);
+      status.textContent = "Bildirim gösterilemedi; tarayıcı izinlerini kontrol et.";
+      status.dataset.state = "error";
+    }
+  };
+
+  const scheduleNextReminder = () => {
+    window.clearTimeout(timer);
+    if (!settings.enabled || !navigator.onLine || Notification.permission !== "granted") return;
+    const delay = Math.max(0, getNextReminder().getTime() - Date.now());
+    timer = window.setTimeout(async () => {
+      await showReminder();
+      scheduleNextReminder();
+    }, Math.min(delay, 2_147_000_000));
+  };
+
+  readSettings();
+  if (!("Notification" in window)) {
+    settings.enabled = false;
+    status.textContent = "Bu tarayıcı bildirimleri desteklemiyor.";
+    status.dataset.state = "error";
+    toggleButton.disabled = true;
+  } else if (settings.enabled && Notification.permission !== "granted") {
+    settings.enabled = false;
+    saveSettings();
+    status.textContent = Notification.permission === "denied"
+      ? "Bildirim izni tarayıcı ayarlarından engellenmiş."
+      : "Bildirim iznini yeniden etkinleştir.";
+  } else if (settings.enabled) {
+    status.textContent = `Günlük hatırlatıcı açık · ${settings.time}`;
+    status.dataset.state = "saved";
+  }
+  updateControls();
+  scheduleNextReminder();
+
+  toggleButton.addEventListener("click", async () => {
+    if (settings.enabled) {
+      settings.enabled = false;
+      window.clearTimeout(timer);
+      if (saveSettings()) {
+        status.textContent = "Hatırlatıcı kapatıldı";
+        status.dataset.state = "";
+      }
+      updateControls();
+      return;
+    }
+
+    if (!("Notification" in window)) {
+      status.textContent = "Bu tarayıcı bildirimleri desteklemiyor.";
+      status.dataset.state = "error";
+      return;
+    }
+
+    try {
+      const permission = Notification.permission === "default"
+        ? await Notification.requestPermission()
+        : Notification.permission;
+      if (permission !== "granted") {
+        status.textContent = permission === "denied"
+          ? "İzin verilmedi. Tarayıcı ayarlarından bildirim iznini aç."
+          : "Bildirim izni verilmedi.";
+        status.dataset.state = "error";
+        return;
+      }
+
+      settings.enabled = true;
+      if (!saveSettings()) {
+        settings.enabled = false;
+        return;
+      }
+      status.textContent = `Günlük hatırlatıcı açık · ${settings.time}`;
+      status.dataset.state = "saved";
+      updateControls();
+      scheduleNextReminder();
+    } catch (error) {
+      console.error("Bildirim izni alınamadı:", error);
+      status.textContent = "Bildirim izni alınamadı; tarayıcı ayarlarını kontrol et.";
+      status.dataset.state = "error";
+    }
+  });
+
+  timeInput.addEventListener("change", () => {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(timeInput.value)) {
+      status.textContent = "Geçerli bir saat seç.";
+      status.dataset.state = "error";
+      return;
+    }
+    settings.time = timeInput.value;
+    if (!saveSettings()) return;
+    if (settings.enabled) {
+      status.textContent = `Günlük hatırlatıcı açık · ${settings.time}`;
+      status.dataset.state = "saved";
+      scheduleNextReminder();
+    }
+  });
+
+  window.addEventListener("online", scheduleNextReminder);
+  window.addEventListener("offline", () => window.clearTimeout(timer));
+}
+
 function activateView(view, focusTab = false) {
   const tabs = Array.from(document.querySelectorAll(".page-nav-button"));
   const selectedTab = tabs.find((tab) => tab.dataset.view === view);
@@ -1517,6 +1706,7 @@ function initialize() {
   renderQuestionHistory();
   renderStatistics();
   setupEventListeners();
+  setupNotificationReminders();
 }
 
 setupAuthentication();

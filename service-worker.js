@@ -69,3 +69,15 @@ self.addEventListener("fetch", (event) => {
       })
   );
 });
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        const appWindow = clients.find((client) => client.url.startsWith(self.registration.scope));
+        if (appWindow) return appWindow.focus();
+        return self.clients.openWindow(self.registration.scope);
+      })
+  );
+});

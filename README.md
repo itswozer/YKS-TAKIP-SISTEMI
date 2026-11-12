@@ -41,6 +41,7 @@ Frontend tarafında da tarayıcı seviyesinde CSP eklendi; böylece XSS ve dış
 * Daha önce bu cihazda giriş yapılmışsa internet kesintisinde son hesabın yerel kopyası açılır. Çevrimdışıyken yapılan değişiklikler cihazda saklanır ve bağlantı geri geldiğinde bulutla eşitlenir.
 * Çevrimdışı kullanımda giriş/kayıt ve sunucuya bağlı işlemler yapılamaz. İlk giriş ve ilk uygulama önbelleğinin oluşturulması için internet gerekir. Yerel kayıtlar cihaz ve tarayıcıya özeldir; tarayıcı verileri silinirse çevrimdışı kopya da silinebilir.
 * Uygulama kabuğu (HTML, CSS ve JavaScript) Service Worker ile önbelleğe alınır. Kişisel veriler Service Worker önbelleğine eklenmez.
+* Genel bakıştaki **Günlük hatırlatıcı** kartından bildirim izni verip yerel saati seçebilirsiniz. Hatırlatıcı cihazda saklanır ve panel açıkken çalışır; tarayıcı kapalıyken zamanlanmış bildirim göndermek için sunucu taraflı Web Push servisi gerekir.
 
 ---
 

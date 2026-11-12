@@ -538,6 +538,20 @@
             </form>
           </section>
 
+          <section class="panel notification-panel" id="notification-panel" aria-labelledby="notification-title">
+            <div class="panel-heading">
+              <div class="heading-icon purple-icon" aria-hidden="true">🔔</div>
+              <div>
+                <h2 id="notification-title">Günlük hatırlatıcı</h2>
+                <p id="notification-status" role="status" aria-live="polite">Hatırlatıcı kapalı</p>
+              </div>
+            </div>
+            <label class="notification-time-label" for="notification-time">Hatırlatma saati</label>
+            <input id="notification-time" class="notification-time" type="time" value="18:00" disabled>
+            <button class="notification-toggle" id="notification-toggle" type="button">Bildirimleri etkinleştir</button>
+            <p class="notification-note">Bildirimler bu panel açıkken çalışır. İzin cihazına özeldir; tarayıcı kapalıyken bildirim için sunucu push desteği gerekir.</p>
+          </section>
+
           <section class="tip-card" id="tip-card">
             <span class="tip-spark" aria-hidden="true">✦</span>
             <p class="eyebrow">GÜNÜN HATIRLATMASI</p>
