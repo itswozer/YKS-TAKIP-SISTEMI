@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Hedef YKS | Çalışma ve Takip Paneli",
+  "short_name": "Hedef YKS",
+  "description": "YKS çalışma planını, denemelerini ve ilerlemeni takip et.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080d18",
+  "theme_color": "#080d18",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

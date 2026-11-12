@@ -13,9 +13,13 @@ const STORAGE_KEYS = {
   topicProgress: "odak-yks-topic-progress"
 };
 const AUTH_TOKEN_KEY = "hedef-yks-auth-token";
+const LAST_ACCOUNT_KEY = "hedef-yks-last-account";
+const PENDING_SYNC_KEY = "hedef-yks-pending-sync";
 const AUTH_API_URL = document.querySelector('meta[name="api-base-url"]').content.replace(/\/+$/, "");
 let activeAccount = "";
 let syncTimers = new Map();
+let syncRequests = new Map();
+let syncRevisions = new Map();
 let syncStatusElement;
 
 const DEFAULT_GOALS = { TYT: 100, AYT: 70 };
@@ -187,13 +191,63 @@ function setSyncStatus(text, state = "") {
   syncStatusElement.dataset.state = state;
 }
 
+function getPendingSyncKeys() {
+  if (!activeAccount) return [];
+  try {
+    const stored = localStorage.getItem(getAccountStorageKey(PENDING_SYNC_KEY));
+    if (stored === null) return [];
+    const keys = JSON.parse(stored);
+    if (!Array.isArray(keys) || keys.some((key) => typeof key !== "string" || !Object.values(STORAGE_KEYS).includes(key))) {
+      throw new Error("Eşitleme kuyruğu beklenen biçimde değil.");
+    }
+    return keys;
+  } catch (error) {
+    console.error("Bekleyen eşitleme kuyruğu okunamadı:", error);
+    setSyncStatus("Eşitleme kuyruğu okunamadı", "error");
+    return [];
+  }
+}
+
+function updatePendingSyncKeys(keys) {
+  if (!activeAccount) return;
+  try {
+    localStorage.setItem(getAccountStorageKey(PENDING_SYNC_KEY), JSON.stringify([...new Set(keys)]));
+  } catch (error) {
+    console.error("Bekleyen eşitlemeler kaydedilemedi:", error);
+    setSyncStatus("Eşitleme kuyruğu kaydedilemedi", "error");
+  }
+}
+
 function scheduleDataSync(key, value) {
+  if (!activeAccount) return;
+  const revision = (syncRevisions.get(key) || 0) + 1;
+  syncRevisions.set(key, revision);
+  const pendingKeys = getPendingSyncKeys();
+  if (!pendingKeys.includes(key)) {
+    pendingKeys.push(key);
+    updatePendingSyncKeys(pendingKeys);
+  }
+
+  if (!navigator.onLine) {
+    setSyncStatus("Çevrimdışı: cihazda kaydedildi", "pending");
+    return;
+  }
+
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  if (!activeAccount || !token) return;
+  if (!token) return;
   clearTimeout(syncTimers.get(key));
   setSyncStatus("Kaydediliyor...");
   syncTimers.set(key, window.setTimeout(async () => {
     syncTimers.delete(key);
+    const previousRequest = syncRequests.get(key) || Promise.resolve();
+    let releaseCurrentRequest;
+    const currentRequest = new Promise((resolve) => {
+      releaseCurrentRequest = resolve;
+    });
+    const queuedRequest = previousRequest.catch(() => {}).then(() => currentRequest);
+    syncRequests.set(key, queuedRequest);
+    await previousRequest.catch(() => {});
+
     try {
       const response = await fetch(`${AUTH_API_URL}/api/data/${encodeURIComponent(key)}`, {
         method: "PUT",
@@ -205,11 +259,27 @@ function scheduleDataSync(key, value) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Veri eşitlenemedi.");
-      setSyncStatus("Kaydedildi", "saved");
-      window.setTimeout(() => setSyncStatus(""), 2500);
+      if (syncRevisions.get(key) === revision) {
+        updatePendingSyncKeys(getPendingSyncKeys().filter((pendingKey) => pendingKey !== key));
+        const remainingKeys = getPendingSyncKeys();
+        setSyncStatus(remainingKeys.length ? "Diğer değişiklikler eşitleniyor..." : "Kaydedildi", "saved");
+        if (remainingKeys.length === 0) {
+          const connectionNotice = $("#connection-notice");
+          if (connectionNotice && navigator.onLine) connectionNotice.hidden = true;
+          window.setTimeout(() => setSyncStatus(""), 2500);
+        }
+      }
     } catch (error) {
       console.error("Hesap verisi sunucuya kaydedilemedi:", error);
-      setSyncStatus(error instanceof TypeError ? "Sunucuyla eşitlenemedi" : "Kaydetme hatası", "error");
+      setSyncStatus("Eşitlenemedi; tekrar bağlanınca denenecek", "error");
+      const connectionNotice = $("#connection-notice");
+      if (connectionNotice && navigator.onLine) {
+        connectionNotice.textContent = "Bağlantı var ancak bazı değişiklikler henüz eşitlenemedi; cihazda saklanıyor.";
+        connectionNotice.hidden = false;
+      }
+    } finally {
+      releaseCurrentRequest();
+      if (syncRequests.get(key) === queuedRequest) syncRequests.delete(key);
     }
   }, 400));
 }
@@ -1175,8 +1245,47 @@ function setupAuthentication() {
   const title = $("#login-title");
   const description = $("#login-description");
   syncStatusElement = $("#sync-status");
+  const connectionNotice = $("#connection-notice");
   let appInitialized = false;
   let mode = "login";
+
+  const updateConnectionNotice = () => {
+    if (!connectionNotice) return;
+    connectionNotice.hidden = navigator.onLine;
+    if (!navigator.onLine) {
+      connectionNotice.textContent = "Çevrimdışısın. Değişikliklerin bu cihazda saklanır ve bağlantı gelince eşitlenir.";
+    }
+  };
+
+  const hasCachedAccountData = (username) => Object.values(STORAGE_KEYS).some((key) => {
+    try {
+      return localStorage.getItem(`hedef-yks:${encodeURIComponent(username)}:${key}`) !== null;
+    } catch (error) {
+      console.error("Çevrimdışı hesap verisi kontrol edilemedi:", error);
+      return false;
+    }
+  });
+
+  const showCachedOfflineApp = () => {
+    let cachedUsername;
+    try {
+      cachedUsername = localStorage.getItem(LAST_ACCOUNT_KEY);
+    } catch (error) {
+      console.error("Son hesap bilgisi okunamadı:", error);
+      return false;
+    }
+
+    if (
+      !cachedUsername
+      || cachedUsername !== cachedUsername.trim().toLowerCase()
+      || !hasCachedAccountData(cachedUsername)
+    ) return false;
+    activeAccount = cachedUsername;
+    setSyncStatus("Çevrimdışı çalışma", "pending");
+    if (connectionNotice) connectionNotice.hidden = false;
+    showApp();
+    return true;
+  };
 
   const showLogin = (errorMessage = "") => {
     appShell.hidden = true;
@@ -1201,6 +1310,7 @@ function setupAuthentication() {
     });
 
     if (response.status === 503) {
+      localStorage.setItem(LAST_ACCOUNT_KEY, activeAccount);
       setSyncStatus("Veri eşitleme için veritabanı gerekli", "error");
       return;
     }
@@ -1211,10 +1321,12 @@ function setupAuthentication() {
     }
 
     const remoteData = await response.json();
+    localStorage.setItem(LAST_ACCOUNT_KEY, activeAccount);
+    const pendingKeys = getPendingSyncKeys();
     let cachedValuesToSync = 0;
     for (const key of Object.values(STORAGE_KEYS)) {
       const localKey = getAccountStorageKey(key);
-      if (Object.hasOwn(remoteData, key)) {
+      if (Object.hasOwn(remoteData, key) && !pendingKeys.includes(key)) {
         localStorage.setItem(localKey, JSON.stringify(remoteData[key]));
       } else {
         const cachedValue = localStorage.getItem(localKey);
@@ -1229,7 +1341,7 @@ function setupAuthentication() {
         }
       }
     }
-    if (cachedValuesToSync === 0) {
+    if (cachedValuesToSync === 0 && pendingKeys.length === 0) {
       setSyncStatus("Veriler eşitlendi", "saved");
       window.setTimeout(() => setSyncStatus(""), 2500);
     }
@@ -1293,6 +1405,7 @@ function setupAuthentication() {
       localStorage.setItem(AUTH_TOKEN_KEY, data.token);
       await loadAccountData(data.username || form.elements.username.value, data.token);
       form.reset();
+      updateConnectionNotice();
       showApp();
     } catch (error) {
       form.elements.password.value = "";
@@ -1329,6 +1442,13 @@ function setupAuthentication() {
       return;
     }
 
+    if (!navigator.onLine) {
+      if (!showCachedOfflineApp()) {
+        showLogin("Çevrimdışısın. Bu cihazda daha önce oturum açtıktan sonra çevrimdışı kullanabilirsin.");
+      }
+      return;
+    }
+
     try {
       const response = await fetch(`${AUTH_API_URL}/api/check-auth`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -1336,6 +1456,7 @@ function setupAuthentication() {
       if (response.ok) {
         const account = await response.json();
         await loadAccountData(account.username, token);
+        updateConnectionNotice();
         showApp();
         return;
       }
@@ -1346,9 +1467,32 @@ function setupAuthentication() {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       showLogin("Oturum süresi dolmuş. Lütfen tekrar giriş yapın.");
     } catch (error) {
+      if (error instanceof TypeError && showCachedOfflineApp()) return;
       showLogin(explainConnectionError(error));
     }
   }
+
+  window.addEventListener("offline", updateConnectionNotice);
+  window.addEventListener("online", () => {
+    updateConnectionNotice();
+    if (!activeAccount) return;
+    const pendingKeys = getPendingSyncKeys();
+    if (pendingKeys.length === 0) return;
+    if (connectionNotice) {
+      connectionNotice.textContent = "Bağlantı geri geldi; çevrimdışı değişiklikler eşitleniyor.";
+      connectionNotice.hidden = false;
+    }
+    setSyncStatus("Bağlantı geldi; eşitleniyor...", "pending");
+    for (const key of pendingKeys) {
+      try {
+        const stored = localStorage.getItem(getAccountStorageKey(key));
+        if (stored !== null) scheduleDataSync(key, JSON.parse(stored));
+      } catch (error) {
+        console.error(`"${key}" çevrimdışı verisi eşitlenemedi:`, error);
+        setSyncStatus("Çevrimdışı veri okunamadı", "error");
+      }
+    }
+  });
 
   restoreSession();
 }

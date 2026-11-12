@@ -2,9 +2,15 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#080d18">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https://images.unsplash.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5173 https://yks-takip-sistemi-r77w.onrender.com; upgrade-insecure-requests;">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data: https://images.unsplash.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5173 https://yks-takip-sistemi-r77w.onrender.com; upgrade-insecure-requests;">
   <meta name="api-base-url" content="https://yks-takip-sistemi-r77w.onrender.com">
   <title>YKS Paneli | Çalışma ve Takip</title>
   <script>
@@ -69,6 +75,9 @@
         <span id="today-label"></span>
       </div>
     </header>
+    <p class="connection-notice" id="connection-notice" role="status" aria-live="polite" hidden>
+      Çevrimdışısın. Değişikliklerin bu cihazda saklanır ve bağlantı gelince eşitlenir.
+    </p>
 
     <nav class="page-nav" aria-label="Ana gezinme" role="tablist">
       <button class="page-nav-button is-active" id="overview-tab" type="button" role="tab" aria-selected="true" aria-controls="target-card welcome-section average-card goal-panel tip-card" data-view="overview">
@@ -542,5 +551,14 @@
       </footer>
     </main>
   </div>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch((error) => {
+          console.error("Çevrimdışı kullanım başlatılamadı:", error);
+        });
+      });
+    }
+  </script>
 </body>
 </html>

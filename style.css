@@ -1337,3 +1337,52 @@ main[data-active-view="topics"] .topic-tracker-panel { width: 100%; }
   .login-card { padding: 30px 24px; }
   .auth-logout { min-height: 32px; padding: 0 8px; font-size: 10px; }
 }
+
+.connection-notice {
+  margin: 10px 0 0;
+  padding: 11px 14px;
+  border: 1px solid rgba(248, 190, 96, .3);
+  border-radius: 10px;
+  background: rgba(248, 190, 96, .09);
+  color: #f5d49c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.connection-notice[hidden] { display: none !important; }
+:root[data-theme="light"] .connection-notice {
+  border-color: rgba(157, 101, 16, .24);
+  background: rgba(247, 185, 75, .14);
+  color: #68460f;
+}
+
+@media (max-width: 760px) {
+  body { min-height: 100vh; min-height: 100svh; }
+  .app-shell {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-left: max(16px, env(safe-area-inset-left));
+  }
+  .page-nav {
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .page-nav::-webkit-scrollbar { display: none; }
+  .page-nav-button { min-height: 44px; }
+  .theme-toggle, .auth-logout { min-width: 44px; min-height: 44px; }
+  input[type="text"], input[type="number"], input[type="password"], select, textarea { font-size: 16px; }
+}
+
+@media (max-width: 520px) {
+  .app-shell {
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-left: max(12px, env(safe-area-inset-left));
+  }
+  .topbar { height: auto; min-height: 64px; flex-wrap: wrap; gap: 6px 8px; padding: 8px 0; }
+  .brand { gap: 7px; font-size: 16px; }
+  .brand-mark { width: 27px; height: 27px; flex: 0 0 auto; font-size: 15px; }
+  .topbar-date { max-width: 100%; flex: 1 0 100%; justify-content: flex-end; gap: 4px; white-space: nowrap; }
+  .auth-logout { flex: 0 0 auto; }
+  .connection-notice { margin-top: 8px; padding: 10px 12px; font-size: 11px; }
+}
