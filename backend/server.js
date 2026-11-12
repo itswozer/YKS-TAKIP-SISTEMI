@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const crypto = require("node:crypto");
 const express = require("express");
+const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
 const { rateLimit } = require("express-rate-limit");
 const { Pool } = require("pg");
@@ -18,6 +19,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const REGISTRATION_INVITE_CODE = process.env.REGISTRATION_INVITE_CODE;
 const TOKEN_ISSUER = "hedef-yks-api";
 const TOKEN_AUDIENCE = "hedef-yks-client";
+const MAX_BODY_BYTES = 256 * 1024;
+const FAILED_LOGIN_LIMIT = 5;
+const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const DATA_KEYS = new Set([
   "odak-yks-notes",
   "odak-yks-tasks",
@@ -37,8 +41,10 @@ const pool = DATABASE_URL
       ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
     })
   : null;
+const failedLoginAttempts = new Map();
 
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
 if (!JWT_SECRET || Buffer.byteLength(JWT_SECRET) < 32) {
   throw new Error("JWT_SECRET eksik veya çok kısa. Güvenli bir anahtar yapılandırın.");
@@ -48,12 +54,48 @@ if (!pool && (!AUTH_USERNAME || !/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(AUT
   throw new Error("Veritabanı ayarlı değil ve tek kullanıcı kimlik bilgileri eksik veya hatalı.");
 }
 
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+      connectSrc: ["'self'", FRONTEND_ORIGIN, "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://images.unsplash.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
+      upgradeInsecureRequests: true,
+    },
+  },
+  crossOriginResourcePolicy: { policy: "same-origin" },
+  referrerPolicy: { policy: "no-referrer" },
+}));
+
 app.use(cors({
   origin: FRONTEND_ORIGIN,
-  methods: ["GET", "POST", "PUT"],
+  methods: ["GET", "POST", "PUT", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false,
 }));
-app.use(express.json({ limit: "256kb" }));
+app.use(express.json({ limit: `${MAX_BODY_BYTES}b`, strict: true, type: "application/json" }));
+app.use(express.urlencoded({ extended: false, limit: `${MAX_BODY_BYTES}b` }));
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+app.use(rateLimit({
+  windowMs: 60 * 1000,
+  limit: 200,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Sunucuya çok fazla istek gönderildi. Lütfen bir süre sonra tekrar deneyin." },
+}));
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -69,6 +111,52 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin." },
 });
+
+function getClientIdentifier(req, username) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = Array.isArray(forwarded)
+    ? forwarded[0]
+    : typeof forwarded === "string"
+      ? forwarded.split(",")[0].trim()
+      : req.ip || req.socket?.remoteAddress || "unknown";
+  const normalizedUsername = typeof username === "string" ? username.trim().toLowerCase() : "";
+  return `${normalizedUsername}:${String(ip)}`;
+}
+
+function getLoginAttemptState(req, username) {
+  const key = getClientIdentifier(req, username);
+  const now = Date.now();
+  const current = failedLoginAttempts.get(key) || { count: 0, lockUntil: now + FAILED_LOGIN_WINDOW_MS };
+
+  if (now >= current.lockUntil) {
+    failedLoginAttempts.delete(key);
+    return { blocked: false, retryInMs: 0 };
+  }
+
+  return {
+    blocked: current.count >= FAILED_LOGIN_LIMIT,
+    retryInMs: Math.max(0, current.lockUntil - now),
+  };
+}
+
+function recordFailedLogin(req, username) {
+  const key = getClientIdentifier(req, username);
+  const now = Date.now();
+  const current = failedLoginAttempts.get(key) || { count: 0, lockUntil: now + FAILED_LOGIN_WINDOW_MS };
+
+  if (now >= current.lockUntil) {
+    current.count = 0;
+    current.lockUntil = now + FAILED_LOGIN_WINDOW_MS;
+  }
+
+  current.count += 1;
+  failedLoginAttempts.set(key, current);
+  return current.count >= FAILED_LOGIN_LIMIT;
+}
+
+function clearLoginFailure(req, username) {
+  failedLoginAttempts.delete(getClientIdentifier(req, username));
+}
 
 function createToken(user) {
   return jwt.sign({ username: user.username }, JWT_SECRET, {
@@ -197,23 +285,38 @@ app.post("/api/login", loginLimiter, async (req, res) => {
     return res.status(400).json({ error: "Kullanıcı adı ve şifre gerekli." });
   }
 
+  const trimmedUsername = username.trim();
+  const attemptState = getLoginAttemptState(req, trimmedUsername);
+  if (attemptState.blocked) {
+    const retryMinutes = Math.max(1, Math.ceil(attemptState.retryInMs / 60000));
+    return res.status(429).json({
+      error: `Çok fazla deneme yaptınız. Lütfen ${retryMinutes} dakika sonra tekrar deneyin.`,
+    });
+  }
+
   if (pool) {
     const result = await pool.query(
       "SELECT id, username, password_hash FROM users WHERE username = $1",
-      [username.trim().toLowerCase()],
+      [trimmedUsername.toLowerCase()],
     );
     const user = result.rows[0];
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    const passwordMatches = user ? await bcrypt.compare(password, user.password_hash) : false;
+    if (!user || !passwordMatches) {
+      recordFailedLogin(req, trimmedUsername);
       return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
     }
+
+    clearLoginFailure(req, trimmedUsername);
     return res.json({ token: createToken(user), tokenType: "Bearer", expiresIn: 3600, username: user.username });
   }
 
   const passwordMatches = await bcrypt.compare(password, AUTH_PASSWORD_HASH);
-  if (username !== AUTH_USERNAME || !passwordMatches) {
+  if (trimmedUsername.toLowerCase() !== AUTH_USERNAME?.trim().toLowerCase() || !passwordMatches) {
+    recordFailedLogin(req, trimmedUsername);
     return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
   }
 
+  clearLoginFailure(req, trimmedUsername);
   return res.json({
     token: jwt.sign({ username: AUTH_USERNAME }, JWT_SECRET, {
       algorithm: "HS256",
@@ -278,6 +381,10 @@ app.put("/api/data/:key", verifyToken, async (req, res) => {
 });
 
 app.use((error, req, res, next) => {
+  if (error instanceof SyntaxError && "body" in error) {
+    return res.status(400).json({ error: "Gönderilen JSON formatı geçersiz." });
+  }
+
   console.error("API isteği başarısız:", error.message);
   if (res.headersSent) return next(error);
   return res.status(500).json({ error: "Sunucu isteği tamamlayamadı. Lütfen tekrar deneyin." });

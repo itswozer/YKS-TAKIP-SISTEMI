@@ -22,6 +22,18 @@ Proje, herhangi bir harici kütüphane veya karmaşık framework gerektirmeden, 
 * *CSS3* (Modern Flexbox, Grid, CSS Değişkenleri ve Glassmorphism efektleri)
 * *JavaScript (ES6+)* (Dinamik işlemler ve localStorage veri kalıcılığı)
 
+## 🔒 Gelişmiş güvenlik katmanı
+
+Backend tarafında aşağıdaki korumalar eklendi:
+
+* HTTP güvenlik başlıkları (`Helmet` ile CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
+* Global API istek limitlemesi ve daha sıkı giriş/kayıt rate limiting
+* JSON parse hata yakalama ve izin verilen anahtar kontrolü
+* Hızlı parola deneme engelleme (IP + kullanıcı adı bazlı kilit)
+* `Cache-Control: no-store` ve daha sıkı CORS/Content-Type ayarları
+
+Frontend tarafında da tarayıcı seviyesinde CSP eklendi; böylece XSS ve dış kaynaklı zararlı betik çalışmaları önlenmeye çalışıldı.
+
 ---
 
 ## 📂 Proje Yapısı
