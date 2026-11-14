@@ -18,7 +18,8 @@ const AUTH_USERNAME = process.env.AUTH_USERNAME;
 const AUTH_PASSWORD_HASH = process.env.AUTH_PASSWORD_HASH;
 const JWT_SECRET = process.env.JWT_SECRET;
 const REGISTRATION_INVITE_CODE = process.env.REGISTRATION_INVITE_CODE;
-const SENTINEL_ADMIN_USERNAME = (process.env.SENTINEL_ADMIN_USERNAME || AUTH_USERNAME || "").trim().toLowerCase();
+const SENTINEL_ADMIN_USERNAME = (process.env.SENTINEL_ADMIN_USERNAME || "").trim().toLowerCase();
+const SENTINEL_ADMIN_PASSWORD_HASH = process.env.SENTINEL_ADMIN_PASSWORD_HASH;
 const TOKEN_ISSUER = "hedef-yks-api";
 const TOKEN_AUDIENCE = "hedef-yks-client";
 const MAX_BODY_BYTES = 256 * 1024;
@@ -399,8 +400,9 @@ app.put("/api/data/:key", verifyToken, async (req, res) => {
 
 app.use("/api/sentinel", createSentinelRouter({
   pool,
-  verifyToken,
+  jwtSecret: JWT_SECRET,
   adminUsername: SENTINEL_ADMIN_USERNAME,
+  adminPasswordHash: SENTINEL_ADMIN_PASSWORD_HASH,
   projectRoot: require("node:path").resolve(__dirname, ".."),
 }));
 

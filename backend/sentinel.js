@@ -6,10 +6,14 @@ const fs = require("node:fs/promises");
 const { spawn } = require("node:child_process");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { sanitizeReport, validatePatch, SOURCE_FILES } = require("./sentinel-core");
 
 const STALE_INCIDENT_DAYS = 90;
 const MAX_CONCURRENT_DRAFTS = 2;
+const TOKEN_ISSUER = "hedef-yks-api";
+const ADMIN_TOKEN_AUDIENCE = "hedef-yks-sentinel-admin";
 
 async function initializeSentinelDatabase(pool) {
   if (!pool) return;
@@ -49,22 +53,45 @@ async function initializeSentinelDatabase(pool) {
   await pool.query("CREATE INDEX IF NOT EXISTS sentinel_incidents_created_at_idx ON sentinel_incidents (created_at DESC)");
 }
 
-function requireSentinelAdmin(adminUsername) {
+function verifySentinelAdminToken({ jwtSecret, adminUsername }) {
   return (req, res, next) => {
-    if (!adminUsername) {
-      return res.status(503).json({ error: "Sentinel yöneticisi SENTINEL_ADMIN_USERNAME ile yapılandırılmalı." });
+    const authorization = req.get("authorization") || "";
+    const match = authorization.match(/^Bearer\s+(\S+)$/i);
+    if (!match) {
+      return res.status(401).json({ error: "Sentinel yönetici oturumu gerekli." });
     }
-    if (req.user?.username?.toLowerCase() !== adminUsername) {
-      return res.status(403).json({ error: "Bu panel yalnızca Sentinel yöneticisine açıktır." });
+
+    try {
+      const payload = jwt.verify(match[1], jwtSecret, {
+        algorithms: ["HS256"],
+        issuer: TOKEN_ISSUER,
+        audience: ADMIN_TOKEN_AUDIENCE,
+      });
+      if (payload.role !== "sentinel_admin" || payload.username !== adminUsername ||
+          payload.sub !== adminUsername) {
+        return res.status(401).json({ error: "Sentinel yönetici oturumu geçersiz." });
+      }
+      req.user = { username: adminUsername, role: "sentinel_admin" };
+      return next();
+    } catch {
+      return res.status(401).json({ error: "Sentinel yönetici oturumu geçersiz veya süresi dolmuş." });
     }
-    return next();
   };
 }
 
-function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot }) {
+function createSentinelRouter({
+  pool, jwtSecret, adminUsername, adminPasswordHash, projectRoot,
+}) {
   const router = express.Router();
   const root = path.resolve(projectRoot);
   let applyQueue = Promise.resolve();
+  const adminLoginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { error: "Çok fazla Sentinel giriş denemesi. Lütfen 15 dakika sonra tekrar deneyin." },
+  });
   const reportLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 30,
@@ -72,7 +99,7 @@ function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot })
     legacyHeaders: false,
     message: { error: "Çok fazla hata raporu gönderildi." },
   });
-  const adminOnly = [verifyToken, requireSentinelAdmin(adminUsername)];
+  const adminOnly = [verifySentinelAdminToken({ jwtSecret, adminUsername })];
   let activeDrafts = 0;
   let lastCleanupAt = 0;
 
@@ -81,6 +108,35 @@ function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot })
     res.status(503).json({ error: "Sentinel için PostgreSQL veritabanı yapılandırılmalı." });
     return true;
   }
+
+  router.post("/admin/login", adminLoginLimiter, async (req, res) => {
+    if (!adminUsername || !adminPasswordHash) {
+      return res.status(503).json({
+        error: "Sentinel girişi yapılandırılmamış. Render'a SENTINEL_ADMIN_USERNAME ve SENTINEL_ADMIN_PASSWORD_HASH ekleyin.",
+      });
+    }
+    const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    if (password.length > 72) {
+      return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
+    }
+    const passwordMatches = await bcrypt.compare(password, adminPasswordHash);
+    if (username.toLowerCase() !== adminUsername || !passwordMatches) {
+      return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
+    }
+    const token = jwt.sign(
+      { username: adminUsername, role: "sentinel_admin" },
+      jwtSecret,
+      {
+        algorithm: "HS256",
+        subject: adminUsername,
+        expiresIn: "1h",
+        issuer: TOKEN_ISSUER,
+        audience: ADMIN_TOKEN_AUDIENCE,
+      },
+    );
+    return res.json({ token, tokenType: "Bearer", expiresIn: 3600, username: adminUsername });
+  });
 
   router.post("/report", reportLimiter, async (req, res) => {
     if (requireDatabase(res)) return;
@@ -517,5 +573,5 @@ module.exports = {
   applyPatchToContent,
   createSentinelRouter,
   initializeSentinelDatabase,
-  requireSentinelAdmin,
+  verifySentinelAdminToken,
 };

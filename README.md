@@ -103,7 +103,7 @@ YKS-TAKIP-SISTEMI/
 
 `sentinel.js`, tarayıcı çalışma zamanı hatalarını, yakalanmamış Promise retlerini, `fetch` ve XHR/axios HTTP/ağ hatalarını izler. Üçüncü taraf adresleri ve hata raporlama uç noktası izlenmez; raporlardan URL sorgu parametreleri ve e-posta adresleri ayıklanır. Raporlar güvenilmeyen girdi sayılır ve kaynak dosya istemcinin gönderdiği yola göre okunmaz: yalnızca stack içindeki allowlist dosya adları (`script.js`, `sentinel.js`, `service-worker.js`) kullanılabilir.
 
-Kontrol paneli site adresinizde `/admin/sentinel/` yolundadır. Mevcut giriş token'ını kullanır ve yalnızca `SENTINEL_ADMIN_USERNAME` ile belirlenen kullanıcıya açıktır (ayarlanmazsa `AUTH_USERNAME` kullanılır). Rapor ve yama taslaklarının kalıcı saklanması için `DATABASE_URL`/PostgreSQL gereklidir; tablo uygulama başlarken oluşturulur.
+Kontrol paneli site adresinizde `/admin/sentinel/` yolundadır ve YKS hesabından ayrı Sentinel yönetici kimlik bilgileri kullanır. Backend klasöründe `npm run setup-sentinel-admin` komutunu etkileşimli terminalde çalıştırın. Seçtiğiniz Sentinel parolası ekranda görünmeden alınır; bcrypt özeti `backend/.sentinel-admin.env` dosyasına yazılır ve bu dosya Git'e eklenmez. Dosyadaki `SENTINEL_ADMIN_USERNAME` ve `SENTINEL_ADMIN_PASSWORD_HASH` değerlerini Render Environment'a ekleyip servisi yeniden başlatın. Panel girişi bu iki ayar yokken kapalıdır; mevcut YKS hesabına geri dönüş yoktur. Rapor ve yama taslaklarının kalıcı saklanması için `DATABASE_URL`/PostgreSQL gereklidir; tablo uygulama başlarken oluşturulur.
 
 Yapay zeka taslağı üretmek için backend ortam değişkenlerini ayarlayın:
 

@@ -2,7 +2,7 @@
 
 (() => {
   const apiBase = document.querySelector('meta[name="api-base-url"]').content.replace(/\/+$/, "");
-  const tokenKey = "hedef-yks-auth-token";
+  const tokenKey = "hedef-yks-sentinel-admin-token";
   const loginView = document.getElementById("login-view");
   const dashboardView = document.getElementById("dashboard-view");
   const loginForm = document.getElementById("login-form");
@@ -233,18 +233,24 @@
     loginError.hidden = true;
     const formData = new FormData(loginForm);
     try {
-      const response = await fetch(`${apiBase}/api/login`, {
+      const response = await fetch(`${apiBase}/api/sentinel/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: formData.get("username"), password: formData.get("password") }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Giriş başarısız.");
+      if (!response.ok) {
+        const error = new Error(data.error || "Giriş başarısız.");
+        error.status = response.status;
+        throw error;
+      }
       localStorage.setItem(tokenKey, data.token);
       loginForm.reset();
       await refresh();
     } catch (error) {
-      loginError.textContent = error.message;
+      loginError.textContent = error.status === 503
+        ? `${error.message} Güvenlik için Sentinel yöneticisi ayrıca kurulmalıdır.`
+        : error.message;
       loginError.hidden = false;
     }
   });
