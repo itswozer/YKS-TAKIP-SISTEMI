@@ -1,12 +1,15 @@
 "use strict";
 
-const CACHE_NAME = "hedef-yks-shell-v1";
+const CACHE_NAME = "hedef-yks-shell-v2";
 const APP_SHELL_URLS = [
   "index.html",
   "style.css",
   "script.js",
   "manifest.webmanifest",
-  "icon.svg"
+  "icon.svg",
+  "icon-192.png",
+  "icon-512.png",
+  "apple-touch-icon.png"
 ].map((path) => new URL(path, self.registration.scope).href);
 const APP_ENTRY_URL = new URL("index.html", self.registration.scope).href;
 

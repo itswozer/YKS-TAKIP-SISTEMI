@@ -37,7 +37,7 @@ Frontend tarafında da tarayıcı seviyesinde CSP eklendi; böylece XSS ve dış
 ## 📱 Mobil ve çevrimdışı kullanım
 
 * Panel telefon ve tablet ekranlarına uyumlu; gezinme menüsü yatay kaydırılabilir ve dokunma alanları mobilde büyütülür.
-* Siteyi internet bağlantısı varken en az bir kez açtıktan sonra ana ekrana ekleyerek uygulama gibi kullanabilirsiniz. GitHub Pages gibi HTTPS kullanan bir adres gerekir; tarayıcıda doğrudan `file://` ile açmak çevrimdışı kurulum sağlamaz.
+* Siteyi GitHub Pages gibi HTTPS kullanan bir adreste açıp **Uygulamayı Yükle** düğmesini kullanarak uygulama gibi kurabilirsiniz. Chrome/Edge kurulum penceresini açar; iPhone/iPad'de Safari paylaş menüsünden **Ana Ekrana Ekle** seçilir. Tarayıcıda doğrudan `file://` ile açmak kurulum sağlamaz.
 * Daha önce bu cihazda giriş yapılmışsa internet kesintisinde son hesabın yerel kopyası açılır. Çevrimdışıyken yapılan değişiklikler cihazda saklanır ve bağlantı geri geldiğinde bulutla eşitlenir.
 * Çevrimdışı kullanımda giriş/kayıt ve sunucuya bağlı işlemler yapılamaz. İlk giriş ve ilk uygulama önbelleğinin oluşturulması için internet gerekir. Yerel kayıtlar cihaz ve tarayıcıya özeldir; tarayıcı verileri silinirse çevrimdışı kopya da silinebilir.
 * Uygulama kabuğu (HTML, CSS ve JavaScript) Service Worker ile önbelleğe alınır. Kişisel veriler Service Worker önbelleğine eklenmez.

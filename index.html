@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data: https://images.unsplash.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5173 https://yks-takip-sistemi-r77w.onrender.com; upgrade-insecure-requests;">
   <meta name="api-base-url" content="https://yks-takip-sistemi-r77w.onrender.com">
   <title>YKS Paneli | Çalışma ve Takip</title>
@@ -65,6 +65,7 @@
         <span>YKS ÇALIŞMA PANELİ</span>
         <span class="sync-status" id="sync-status" role="status" aria-live="polite"></span>
       </div>
+      <button class="install-app-button" id="install-app-button" type="button">Uygulamayı Yükle</button>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Açık temaya geç" aria-pressed="false" title="Açık temaya geç">
         <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
         <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.2 15.5A8.6 8.6 0 0 1 8.5 3.8 8.7 8.7 0 1 0 20.2 15.5Z"/></svg>
@@ -566,6 +567,31 @@
     </main>
   </div>
   <script>
+    let deferredInstallPrompt;
+    const installAppButton = document.getElementById("install-app-button");
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+    });
+
+    installAppButton.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) {
+        window.alert("Bu tarayıcıda yükleme menüsü henüz kullanılamıyor. Chrome/Edge'de adres çubuğundaki yükle simgesini veya menüdeki “Uygulamayı yükle” seçeneğini kullanın. iPhone/iPad'de Safari paylaş menüsünden “Ana Ekrana Ekle”yi seçin.");
+        return;
+      }
+
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === "accepted") installAppButton.hidden = true;
+      deferredInstallPrompt = null;
+    });
+
+    window.addEventListener("appinstalled", () => {
+      installAppButton.hidden = true;
+      deferredInstallPrompt = null;
+    });
+
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("service-worker.js").catch((error) => {
