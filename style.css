@@ -1331,25 +1331,11 @@ main[data-active-view="topics"] .topic-tracker-panel { width: 100%; }
   font-weight: 600;
 }
 .auth-logout:hover { border-color: rgba(167, 139, 250, .5); }
-.install-app-button {
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid rgba(104, 223, 176, .3);
-  border-radius: 10px;
-  background: rgba(104, 223, 176, .1);
-  color: var(--text-primary, #eef2ff);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.install-app-button:hover { background: rgba(104, 223, 176, .18); }
-.install-app-button[hidden] { display: none !important; }
 .login-screen[hidden] { display: none !important; }
 
 @media (max-width: 520px) {
   .login-card { padding: 30px 24px; }
   .auth-logout { min-height: 32px; padding: 0 8px; font-size: 10px; }
-  .install-app-button { min-height: 32px; padding: 0 8px; font-size: 10px; }
 }
 
 .connection-notice {
@@ -1413,8 +1399,7 @@ main[data-active-view="topics"] .topic-tracker-panel { width: 100%; }
   }
   .page-nav::-webkit-scrollbar { display: none; }
   .page-nav-button { min-height: 44px; }
-  .theme-toggle, .auth-logout, .install-app-button { min-height: 44px; }
-  .install-app-button { padding: 0 10px; }
+  .theme-toggle, .auth-logout { min-height: 44px; }
   input[type="text"], input[type="number"], input[type="password"], input[type="time"], select, textarea { font-size: 16px; }
 }
 

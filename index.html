@@ -65,7 +65,6 @@
         <span>YKS ÇALIŞMA PANELİ</span>
         <span class="sync-status" id="sync-status" role="status" aria-live="polite"></span>
       </div>
-      <button class="install-app-button" id="install-app-button" type="button">Uygulamayı Yükle</button>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Açık temaya geç" aria-pressed="false" title="Açık temaya geç">
         <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
         <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.2 15.5A8.6 8.6 0 0 1 8.5 3.8 8.7 8.7 0 1 0 20.2 15.5Z"/></svg>
@@ -567,31 +566,6 @@
     </main>
   </div>
   <script>
-    let deferredInstallPrompt;
-    const installAppButton = document.getElementById("install-app-button");
-
-    window.addEventListener("beforeinstallprompt", (event) => {
-      event.preventDefault();
-      deferredInstallPrompt = event;
-    });
-
-    installAppButton.addEventListener("click", async () => {
-      if (!deferredInstallPrompt) {
-        window.alert("Bu tarayıcıda yükleme menüsü henüz kullanılamıyor. Chrome/Edge'de adres çubuğundaki yükle simgesini veya menüdeki “Uygulamayı yükle” seçeneğini kullanın. iPhone/iPad'de Safari paylaş menüsünden “Ana Ekrana Ekle”yi seçin.");
-        return;
-      }
-
-      deferredInstallPrompt.prompt();
-      const { outcome } = await deferredInstallPrompt.userChoice;
-      if (outcome === "accepted") installAppButton.hidden = true;
-      deferredInstallPrompt = null;
-    });
-
-    window.addEventListener("appinstalled", () => {
-      installAppButton.hidden = true;
-      deferredInstallPrompt = null;
-    });
-
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("service-worker.js").catch((error) => {
