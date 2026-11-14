@@ -1,12 +1,12 @@
 "use strict";
 
-const { spawn, execFile } = require("node:child_process");
 const path = require("node:path");
-const { promisify } = require("node:util");
+const os = require("node:os");
+const fs = require("node:fs/promises");
+const { spawn } = require("node:child_process");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const { sanitizeReport, validatePatch, SOURCE_FILES } = require("./sentinel-core");
-const execFileAsync = promisify(execFile);
 
 const STALE_INCIDENT_DAYS = 90;
 const MAX_CONCURRENT_DRAFTS = 2;
@@ -31,6 +31,10 @@ async function initializeSentinelDatabase(pool) {
       reviewed_by TEXT,
       reviewed_at TIMESTAMPTZ,
       applied_by TEXT,
+      github_pr_number INTEGER,
+      github_pr_url TEXT,
+      github_pr_branch TEXT,
+      github_rollback_pr_url TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       applied_at TIMESTAMPTZ,
       rolled_back_by TEXT,
@@ -38,6 +42,10 @@ async function initializeSentinelDatabase(pool) {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query("ALTER TABLE sentinel_incidents ADD COLUMN IF NOT EXISTS github_pr_number INTEGER");
+  await pool.query("ALTER TABLE sentinel_incidents ADD COLUMN IF NOT EXISTS github_pr_url TEXT");
+  await pool.query("ALTER TABLE sentinel_incidents ADD COLUMN IF NOT EXISTS github_pr_branch TEXT");
+  await pool.query("ALTER TABLE sentinel_incidents ADD COLUMN IF NOT EXISTS github_rollback_pr_url TEXT");
   await pool.query("CREATE INDEX IF NOT EXISTS sentinel_incidents_created_at_idx ON sentinel_incidents (created_at DESC)");
 }
 
@@ -126,8 +134,8 @@ function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot })
     res.json({
       mode: "manual",
       automaticModeAvailable: false,
-      modelConfigured: Boolean(process.env.SENTINEL_LLM_ENDPOINT && process.env.SENTINEL_LLM_API_KEY &&
-        process.env.SENTINEL_LLM_MODEL),
+      modelConfigured: hasModelConfig(),
+      githubConfigured: Boolean(getGitHubConfig()),
     });
   });
 
@@ -135,7 +143,7 @@ function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot })
     if (requireDatabase(res)) return;
     const result = await pool.query(`
       SELECT COUNT(*) FILTER (WHERE created_at >= NOW() - ($1 * INTERVAL '1 day'))::INTEGER AS total,
-        COUNT(*) FILTER (WHERE status = 'applied' AND created_at >= NOW() - ($1 * INTERVAL '1 day'))::INTEGER AS applied,
+        COUNT(*) FILTER (WHERE github_pr_number IS NOT NULL AND created_at >= NOW() - ($1 * INTERVAL '1 day'))::INTEGER AS pull_requests,
         COUNT(*) FILTER (WHERE status = 'draft' AND created_at >= NOW() - ($1 * INTERVAL '1 day'))::INTEGER AS drafts,
         COUNT(*) FILTER (WHERE status = 'ai_failed' AND created_at >= NOW() - ($1 * INTERVAL '1 day'))::INTEGER AS ai_failed
       FROM sentinel_incidents
@@ -151,7 +159,8 @@ function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot })
     const result = await pool.query(
       `SELECT id, type, message, stack, page_url, browser, occurred_at, source_file,
               source_line, status, patch, error_detail, created_at, applied_at,
-              reviewed_by, reviewed_at, applied_by, rolled_back_by, rolled_back_at
+              reviewed_by, reviewed_at, applied_by, rolled_back_by, rolled_back_at,
+              github_pr_number, github_pr_url, github_pr_branch, github_rollback_pr_url
        FROM sentinel_incidents WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
        ORDER BY created_at DESC LIMIT $2`,
       [STALE_INCIDENT_DAYS, limit],
@@ -175,11 +184,20 @@ function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot })
   router.post("/admin/incidents/:id/approve", ...adminOnly, async (req, res) => {
     if (requireDatabase(res)) return;
     if (!isIncidentId(req.params.id)) return res.status(400).json({ error: "Olay kimliği geçersiz." });
+    const github = getGitHubConfig();
+    if (!github) {
+      return res.status(503).json({
+        error: "GitHub taslak PR oluşturmak için SENTINEL_GITHUB_TOKEN ve SENTINEL_GITHUB_REPOSITORY yapılandırılmalı.",
+      });
+    }
     const result = await pool.query(
-      "SELECT patch, source_file, status FROM sentinel_incidents WHERE id = $1",
+      "SELECT id, message, patch, source_file, status, github_pr_number, github_pr_url, github_pr_branch FROM sentinel_incidents WHERE id = $1",
       [req.params.id],
     );
     const incident = result.rows[0];
+    if (incident?.github_pr_number && incident.github_pr_url) {
+      return res.json({ pullRequestUrl: incident.github_pr_url, branch: incident.github_pr_branch });
+    }
     if (!incident || incident.status !== "draft" || !incident.patch) {
       return res.status(409).json({ error: "Uygulanabilecek bekleyen bir taslak bulunamadı." });
     }
@@ -187,57 +205,70 @@ function createSentinelRouter({ pool, verifyToken, adminUsername, projectRoot })
     if (checked.error) return res.status(422).json({ error: checked.error });
 
     const operation = applyQueue.then(async () => {
-      await assertGitFileClean(root, incident.source_file);
-      await runGitPatch(root, checked.patch, ["apply", "--check", "--whitespace=error"]);
-      await runGitPatch(root, checked.patch, ["apply", "--whitespace=error"]);
-      try {
-        const updated = await pool.query(
-          `UPDATE sentinel_incidents
-           SET status = 'applied', applied_by = $2, reviewed_by = $2,
-               applied_at = NOW(), reviewed_at = NOW(), updated_at = NOW()
-           WHERE id = $1 AND status = 'draft'`,
-          [req.params.id, req.user.username],
-        );
-        if (!updated.rowCount) throw new Error("Taslak durumu uygulama sırasında değişti.");
-      } catch (error) {
-        await runGitPatch(root, checked.patch, ["apply", "--reverse", "--whitespace=error"]);
-        throw error;
-      }
+      const pullRequest = await createGitHubPullRequest(github, incident, checked.patch);
+      const updated = await pool.query(
+        `UPDATE sentinel_incidents
+         SET status = 'approved', applied_by = $2, reviewed_by = $2,
+             reviewed_at = NOW(), github_pr_number = $3, github_pr_url = $4,
+             github_pr_branch = $5, updated_at = NOW()
+         WHERE id = $1 AND status = 'draft'`,
+        [req.params.id, req.user.username, pullRequest.number, pullRequest.url, pullRequest.branch],
+      );
+      if (!updated.rowCount) throw new Error("Taslak durumu PR oluşturulurken değişti.");
+      return pullRequest;
     });
     applyQueue = operation.catch(() => {});
-    await operation;
-    return res.json({ applied: true, message: "Yama uygulandı. Canlıya yayın için Git dağıtımı ayrıca gerekir." });
+    const pullRequest = await operation;
+    return res.json({
+      pullRequestUrl: pullRequest.url,
+      branch: pullRequest.branch,
+      message: "İnceleme PR'ı açıldı. Kod, GitHub'da ayrıca incelenip birleştirilene kadar yayına çıkmaz.",
+    });
   });
 
   router.post("/admin/rollback", ...adminOnly, async (req, res) => {
     if (requireDatabase(res)) return;
+    const github = getGitHubConfig();
+    if (!github) {
+      return res.status(503).json({
+        error: "Geri alma PR'ı oluşturmak için SENTINEL_GITHUB_TOKEN ve SENTINEL_GITHUB_REPOSITORY yapılandırılmalı.",
+      });
+    }
     const result = await pool.query(
-      `SELECT id, patch, source_file FROM sentinel_incidents
-       WHERE status = 'applied' ORDER BY applied_at DESC LIMIT 1`,
+      `SELECT id, github_pr_number FROM sentinel_incidents
+       WHERE github_pr_number IS NOT NULL AND status = 'approved'
+       ORDER BY reviewed_at DESC LIMIT 1`,
     );
     const incident = result.rows[0];
     if (!incident) return res.status(409).json({ error: "Geri alınacak uygulanmış Sentinel yaması bulunamadı." });
-    const checked = validatePatch(incident.patch, incident.source_file);
-    if (checked.error) return res.status(422).json({ error: checked.error });
 
     const operation = applyQueue.then(async () => {
-      await runGitPatch(root, checked.patch, ["apply", "--reverse", "--check", "--whitespace=error"]);
-      await runGitPatch(root, checked.patch, ["apply", "--reverse", "--whitespace=error"]);
-      try {
-        await pool.query(
-          `UPDATE sentinel_incidents
-           SET status = 'rolled_back', rolled_back_by = $2, rolled_back_at = NOW(), updated_at = NOW()
-           WHERE id = $1 AND status = 'applied'`,
-          [incident.id, req.user.username],
-        );
-      } catch (error) {
-        await runGitPatch(root, checked.patch, ["apply", "--whitespace=error"]);
-        throw error;
+      const originalPullRequest = await githubRequest(github, `/pulls/${incident.github_pr_number}`);
+      if (!originalPullRequest.merged_at) {
+        throw new Error("Henüz birleştirilmiş bir Sentinel PR'ı yok; geri alma için önce PR GitHub'da birleştirilmiş olmalı.");
       }
+      const rollback = await githubRequest(github, "/reverts", {
+        method: "POST",
+        body: JSON.stringify({ pull_number: incident.github_pr_number }),
+      });
+      if (!rollback.html_url || !Number.isInteger(rollback.number)) {
+        throw new Error("GitHub geri alma PR'ı için beklenen yanıtı vermedi.");
+      }
+      await pool.query(
+        `UPDATE sentinel_incidents
+         SET status = 'rolled_back', rolled_back_by = $2, rolled_back_at = NOW(),
+             github_rollback_pr_url = $3, updated_at = NOW()
+         WHERE id = $1 AND status = 'approved'`,
+        [incident.id, req.user.username, rollback.html_url],
+      );
+      return rollback;
     });
     applyQueue = operation.catch(() => {});
-    await operation;
-    return res.json({ rolledBack: true, incidentId: incident.id });
+    const rollback = await operation;
+    return res.json({
+      rollbackPullRequestUrl: rollback.html_url,
+      message: "Geri alma PR'ı açıldı. Geri alma da GitHub'da incelenip birleştirilene kadar canlı kod değişmez.",
+    });
   });
 
   return router;
@@ -318,6 +349,144 @@ async function generateDraft(pool, id, report, projectRoot) {
   );
 }
 
+function getGitHubConfig() {
+  const token = process.env.SENTINEL_GITHUB_TOKEN;
+  const repository = process.env.SENTINEL_GITHUB_REPOSITORY;
+  const baseBranch = process.env.SENTINEL_GITHUB_BASE_BRANCH || "main";
+  if (!token || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository || "") ||
+      !/^[A-Za-z0-9._/-]{1,100}$/.test(baseBranch) || baseBranch.includes("..")) return null;
+  const [owner, name] = repository.split("/");
+  return { token, owner, name, repository, baseBranch };
+}
+
+async function createGitHubPullRequest(github, incident, patch) {
+  const branch = `sentinel/${incident.id}`;
+  const existing = await githubRequest(
+    github,
+    `/pulls?state=all&head=${encodeURIComponent(`${github.owner}:${branch}`)}&per_page=1`,
+  );
+  if (Array.isArray(existing) && existing[0]?.html_url) {
+    return { number: existing[0].number, url: existing[0].html_url, branch };
+  }
+  const branchPath = `/git/ref/heads/${branch.split("/").map(encodeURIComponent).join("/")}`;
+  let branchExists = false;
+  try {
+    await githubRequest(github, branchPath);
+    branchExists = true;
+  } catch (error) {
+    if (error.status !== 404) throw error;
+  }
+
+  if (!branchExists) {
+    const baseRef = await githubRequest(
+      github,
+      `/git/ref/heads/${github.baseBranch.split("/").map(encodeURIComponent).join("/")}`,
+    );
+    const baseSha = baseRef.object?.sha;
+    if (typeof baseSha !== "string" || !/^[0-9a-f]{40}$/i.test(baseSha)) {
+      throw new Error("GitHub ana dal referansı doğrulanamadı.");
+    }
+    const commit = await githubRequest(github, `/git/commits/${baseSha}`);
+    const treeSha = commit.tree?.sha;
+    if (typeof treeSha !== "string" || !/^[0-9a-f]{40}$/i.test(treeSha)) {
+      throw new Error("GitHub ana dal ağacı doğrulanamadı.");
+    }
+    const tree = await githubRequest(github, `/git/trees/${treeSha}?recursive=1`);
+    const sourceEntry = tree.tree?.find((entry) => entry.path === incident.source_file && entry.type === "blob");
+    if (!sourceEntry?.sha) throw new Error("Yama hedef dosyası GitHub ana dalında bulunamadı.");
+    const blob = await githubRequest(github, `/git/blobs/${sourceEntry.sha}`);
+    if (blob.encoding !== "base64" || typeof blob.content !== "string") {
+      throw new Error("GitHub kaynak dosyası okunamadı.");
+    }
+    const originalContent = Buffer.from(blob.content.replace(/\s/g, ""), "base64").toString("utf8");
+    const updatedContent = await applyPatchToContent(incident.source_file, patch, originalContent);
+    const newBlob = await githubRequest(github, "/git/blobs", {
+      method: "POST",
+      body: JSON.stringify({ content: updatedContent, encoding: "utf-8" }),
+    });
+    if (typeof newBlob.sha !== "string" || !/^[0-9a-f]{40}$/i.test(newBlob.sha)) {
+      throw new Error("GitHub kaynak yaması oluşturulamadı.");
+    }
+    const newTree = await githubRequest(github, "/git/trees", {
+      method: "POST",
+      body: JSON.stringify({
+        base_tree: treeSha,
+        tree: [{ path: incident.source_file, mode: "100644", type: "blob", sha: newBlob.sha }],
+      }),
+    });
+    const newCommit = await githubRequest(github, "/git/commits", {
+      method: "POST",
+      body: JSON.stringify({
+        message: `Sentinel suggestion ${incident.id}`,
+        tree: newTree.sha,
+        parents: [baseSha],
+      }),
+    });
+    await githubRequest(github, "/git/refs", {
+      method: "POST",
+      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommit.sha }),
+    });
+  }
+  const pullRequest = await githubRequest(github, "/pulls", {
+    method: "POST",
+    body: JSON.stringify({
+      title: `Sentinel suggestion ${incident.id.slice(0, 8)} (${incident.source_file})`,
+      head: branch,
+      base: github.baseBranch,
+      body: `Sentinel incident ${incident.id}.\n\nThis change was prepared as a draft and explicitly approved for GitHub review. It is not deployed until this pull request is reviewed and merged.`,
+      draft: true,
+    }),
+  });
+  if (!Number.isInteger(pullRequest.number) || typeof pullRequest.html_url !== "string") {
+    throw new Error("GitHub inceleme PR'ı oluşturulamadı.");
+  }
+  return { number: pullRequest.number, url: pullRequest.html_url, branch };
+}
+
+async function applyPatchToContent(filename, patch, source) {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sentinel-patch-"));
+  try {
+    await fs.writeFile(path.join(tempRoot, filename), source, "utf8");
+    await runGitPatch(tempRoot, patch, ["--check", "--whitespace=error"]);
+    await runGitPatch(tempRoot, patch, ["--whitespace=error"]);
+    return await fs.readFile(path.join(tempRoot, filename), "utf8");
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
+async function githubRequest(github, apiPath, options = {}) {
+  const response = await fetch(`https://api.github.com/repos/${github.repository}${apiPath}`, {
+    method: options.method || "GET",
+    redirect: "error",
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${github.token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json",
+    },
+    body: options.body,
+    signal: AbortSignal.timeout(20_000),
+  });
+  const responseText = await response.text();
+  if (Buffer.byteLength(responseText, "utf8") > 1024 * 1024) {
+    throw new Error("GitHub API yanıtı izin verilen boyutu aşıyor.");
+  }
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    throw new Error("GitHub API geçersiz JSON yanıtı verdi.");
+  }
+  if (!response.ok) {
+    const safeMessage = typeof data.message === "string" ? data.message.slice(0, 200) : `HTTP ${response.status}`;
+    const error = new Error(`GitHub API isteği başarısız: ${safeMessage}`);
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+
 function hasModelConfig() {
   return Boolean(process.env.SENTINEL_LLM_ENDPOINT && process.env.SENTINEL_LLM_API_KEY &&
     process.env.SENTINEL_LLM_MODEL);
@@ -325,21 +494,6 @@ function hasModelConfig() {
 
 function isIncidentId(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-async function assertGitFileClean(cwd, filename) {
-  if (!SOURCE_FILES.has(filename)) throw new Error("Kaynak dosya allowlist dışında.");
-  try {
-    await execFileAsync("git", ["ls-files", "--error-unmatch", "--", filename], {
-      cwd, windowsHide: true, timeout: 5000,
-    });
-    await execFileAsync("git", ["diff", "--quiet", "HEAD", "--", filename], {
-      cwd, windowsHide: true, timeout: 5000,
-    });
-  } catch (error) {
-    if (error.code === "ENOENT") throw new Error("Kaynak çalışma kopyasında Git kullanılamıyor.");
-    throw new Error(`Yama uygulanmadı: ${filename} Git çalışma kopyasında izlenmiyor veya yerel değişiklik içeriyor.`);
-  }
 }
 
 function runGitPatch(cwd, patch, args) {
@@ -359,4 +513,9 @@ function runGitPatch(cwd, patch, args) {
   });
 }
 
-module.exports = { createSentinelRouter, initializeSentinelDatabase, requireSentinelAdmin };
+module.exports = {
+  applyPatchToContent,
+  createSentinelRouter,
+  initializeSentinelDatabase,
+  requireSentinelAdmin,
+};

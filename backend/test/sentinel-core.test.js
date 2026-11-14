@@ -3,6 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { parseStackTarget, sanitizeReport, validatePatch } = require("../sentinel-core");
+const { applyPatchToContent } = require("../sentinel");
 
 test("parses only an allowlisted source file from stack frames", () => {
   assert.deepEqual(parseStackTarget("at render (https://example.test/script.js:42:8)"), {
@@ -55,4 +56,19 @@ test("rejects invalid URLs and unallowlisted source names", () => {
     column: 2,
   });
   assert.equal(result.report.sourceFile, null);
+});
+
+test("applies an approved diff only to an isolated temporary source copy", async () => {
+  const patch = [
+    "diff --git a/script.js b/script.js",
+    "--- a/script.js",
+    "+++ b/script.js",
+    "@@ -1 +1 @@",
+    "-const answer = 1;",
+    "+const answer = 2;",
+    "",
+  ].join("\n");
+  const updated = await applyPatchToContent("script.js", patch, "const answer = 1;\n");
+  assert.equal(updated.replace(/\r\n/g, "\n"), "const answer = 2;\n");
+  await assert.rejects(applyPatchToContent("script.js", patch, "const answer = 3;\n"), /Git yamayı reddetti/);
 });

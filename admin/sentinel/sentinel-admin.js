@@ -72,7 +72,7 @@
   function statusLabel(status) {
     const labels = {
       received: "İşleniyor", draft: "İnceleme bekliyor", ai_failed: "AI taslağı yok",
-      approved: "Onaylandı", applied: "Uygulandı", rejected: "Reddedildi", rolled_back: "Geri alındı",
+      approved: "PR açıldı", applied: "Uygulandı", rejected: "Reddedildi", rolled_back: "Geri alma PR'ı",
     };
     return labels[status] || status;
   }
@@ -134,6 +134,21 @@
       incident.reviewed_by ? ` · İnceleyen: ${incident.reviewed_by}` : "";
     document.getElementById("review-location").textContent =
       `${incident.source_file || "Kaynak bulunamadı"}${incident.source_line ? `:${incident.source_line}` : ""} · ${formatDate(incident.occurred_at)} · ${incident.page_url}${audit}`;
+    const reviewLinks = document.getElementById("review-links");
+    reviewLinks.replaceChildren();
+    const links = [
+      [incident.github_pr_url, "GitHub inceleme PR'ını aç"],
+      [incident.github_rollback_pr_url, "GitHub geri alma PR'ını aç"],
+    ].filter(([href]) => typeof href === "string" && href.startsWith("https://github.com/"));
+    for (const [href, label] of links) {
+      const link = document.createElement("a");
+      link.href = href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = label;
+      reviewLinks.append(link);
+    }
+    reviewLinks.hidden = links.length === 0;
     document.getElementById("review-error").hidden = !incident.error_detail;
     document.getElementById("review-error").textContent = incident.error_detail || "";
     renderDiff(incident.patch || "");
@@ -179,7 +194,7 @@
         ? "API bağlantısı ve AI sağlayıcısı hazır"
         : "API hazır · AI sağlayıcısı yapılandırılmamış";
       document.getElementById("total-count").textContent = summary.total;
-      document.getElementById("applied-count").textContent = summary.applied;
+      document.getElementById("applied-count").textContent = summary.pull_requests;
       document.getElementById("draft-count").textContent = summary.drafts;
       incidents = response.incidents;
       renderIncidents();
@@ -191,8 +206,11 @@
         document.getElementById("review-content").hidden = true;
       }
       globalNotice.hidden = true;
-      if (!config.modelConfigured) {
-        showNotice("AI taslak üretimi kapalı: backend ortam değişkenlerinde SENTINEL_LLM_ENDPOINT, SENTINEL_LLM_API_KEY ve SENTINEL_LLM_MODEL yapılandırılmalı.", false);
+      if (!config.modelConfigured || !config.githubConfigured) {
+        const missing = [];
+        if (!config.modelConfigured) missing.push("SENTINEL_LLM_ENDPOINT, SENTINEL_LLM_API_KEY ve SENTINEL_LLM_MODEL");
+        if (!config.githubConfigured) missing.push("SENTINEL_GITHUB_TOKEN ve SENTINEL_GITHUB_REPOSITORY");
+        showNotice(`Sentinel iş akışı henüz tam yapılandırılmadı: Render ortamında ${missing.join("; ")} ayarlanmalı.`, false);
       }
     } catch (error) {
       if (error.status === 401) return showLogin("Oturum süresi dolmuş. Lütfen yeniden giriş yapın.");
@@ -248,10 +266,10 @@
   });
 
   document.getElementById("approve-button").addEventListener("click", async () => {
-    if (!selectedIncidentId || !window.confirm("Yamayı mevcut Git çalışma kopyasına uygulamak istiyor musunuz? Canlı yayın için ayrıca Git dağıtımı gerekir.")) return;
+    if (!selectedIncidentId || !window.confirm("Bu yamayı ayrı bir GitHub dalına gönderip taslak PR oluşturmayı onaylıyor musunuz? Kod, PR ayrıca birleştirilmeden canlıya çıkmaz.")) return;
     try {
-      await api(`/admin/incidents/${encodeURIComponent(selectedIncidentId)}/approve`, { method: "POST", body: "{}" });
-      showNotice("Yama uygulandı. Canlıya yayın için Git dağıtımı ayrıca gerekir.", false);
+      const result = await api(`/admin/incidents/${encodeURIComponent(selectedIncidentId)}/approve`, { method: "POST", body: "{}" });
+      showNotice(`Taslak PR oluşturuldu: ${result.pullRequestUrl}`, false);
       await refresh();
     } catch (error) {
       showNotice(error.message, true);
@@ -259,10 +277,10 @@
   });
 
   document.getElementById("rollback-button").addEventListener("click", async () => {
-    if (!window.confirm("Son Sentinel yamasını geri almak istiyor musunuz?")) return;
+    if (!window.confirm("Son birleştirilmiş Sentinel PR'ı için GitHub'da taslak geri alma PR'ı oluşturulsun mu?")) return;
     try {
-      await api("/admin/rollback", { method: "POST", body: "{}" });
-      showNotice("Son Sentinel yaması geri alındı.", false);
+      const result = await api("/admin/rollback", { method: "POST", body: "{}" });
+      showNotice(`Taslak geri alma PR'ı oluşturuldu: ${result.rollbackPullRequestUrl}`, false);
       await refresh();
     } catch (error) {
       showNotice(error.message, true);

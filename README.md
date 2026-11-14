@@ -107,10 +107,13 @@ Kontrol paneli site adresinizde `/admin/sentinel/` yolundadır. Mevcut giriş to
 
 Yapay zeka taslağı üretmek için backend ortam değişkenlerini ayarlayın:
 
-* `SENTINEL_LLM_ENDPOINT`: OpenAI uyumlu HTTPS `chat/completions` uç noktası
+* `SENTINEL_LLM_ENDPOINT`: OpenAI uyumlu HTTPS `chat/completions` uç noktası (ör. `https://api.openai.com/v1/chat/completions`)
 * `SENTINEL_LLM_API_KEY`: yalnızca backend ortamında saklanan API anahtarı
 * `SENTINEL_LLM_MODEL`: sağlayıcının model adı
+* `SENTINEL_GITHUB_TOKEN`: yalnızca bu depoya sınırlandırılmış, Contents (read/write) ve Pull requests (read/write) izinli GitHub token'ı
+* `SENTINEL_GITHUB_REPOSITORY`: `itswozer/YKS-TAKIP-SISTEMI` biçiminde depo adı
+* `SENTINEL_GITHUB_BASE_BRANCH`: hedef dal (varsayılan `main`)
 
-Bu değişkenler tanımlı değilse olaylar kaydedilir ancak AI taslağı oluşturulmaz. Kaynak kodu yapılandırdığınız LLM sağlayıcısına gönderileceğinden, sağlayıcının veri işleme koşullarını ayrıca değerlendirin. Üretilen diff tek bir allowlist dosyasıyla sınırlandırılır; yalnızca yönetici **Onayla ve uygula** seçeneğini açıkça onayladıktan, Git çalışma kopyası temiz ve yama `git apply --check` doğrulamasından geçtikten sonra uygulanır. Bu işlem otomatik canlı yayın yapmaz; dağıtım yine Git/hosting akışınızdan yapılmalıdır. Rollback son uygulanmış Sentinel diff'ini tersine çevirir ve sonradan yapılan dosya değişiklikleriyle çakışırsa güvenli biçimde başarısız olur. Otomatik mod bilerek etkinleştirilmemiştir.
+LLM değişkenleri tanımlı değilse hata raporları kaydedilir ama AI taslağı oluşturulmaz. GitHub token/repo ayarları yoksa taslaklar panelde incelenebilir ancak onaylama ve PR oluşturma kapalı kalır. Kaynak kodu yapılandırdığınız LLM sağlayıcısına gönderileceğinden, sağlayıcının veri işleme koşullarını ayrıca değerlendirin. Üretilen diff tek bir allowlist dosyasıyla sınırlandırılır, kaynak dosyanın güncel GitHub sürümüne yalıtılmış geçici klasörde uygulanıp doğrulanır ve ayrı `sentinel/<incident-id>` dalında **taslak PR** olarak hazırlanır. Paneldeki **Onayla ve PR aç** eylemi GitHub'a inceleme dalı/PR gönderilmesini onaylar; canlıya yayın değildir. Kod ancak PR GitHub'da ayrıca incelenip birleştirilince yayın akışına girer. Geri alma, son birleştirilmiş Sentinel PR'ı için yeni bir taslak geri alma PR'ı açar; bu PR da ayrıca birleştirilmelidir. Otomatik mod bilerek etkinleştirilmemiştir.
 
 API adresini değiştirirseniz `index.html` ile `admin/sentinel/index.html` içindeki `api-base-url` ve CSP `connect-src` izinlerini de güncelleyin.

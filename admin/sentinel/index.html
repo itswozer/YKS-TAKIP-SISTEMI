@@ -52,7 +52,7 @@
       <section class="health-grid" aria-label="Sağlık özeti">
         <article class="metric-card"><span class="metric-label">Sistem durumu</span><strong id="health-state" class="metric-value"><span class="status-dot"></span> Bağlanıyor</strong><span id="health-detail" class="metric-foot">API durumu denetleniyor</span></article>
         <article class="metric-card"><span class="metric-label">Yakalanan hata</span><strong id="total-count" class="metric-value">—</strong><span class="metric-foot">Son 90 gün içinde</span></article>
-        <article class="metric-card"><span class="metric-label">Uygulanan düzeltme</span><strong id="applied-count" class="metric-value">—</strong><span class="metric-foot">Yönetici onayıyla</span></article>
+        <article class="metric-card"><span class="metric-label">Açılan inceleme PR'ı</span><strong id="applied-count" class="metric-value">—</strong><span class="metric-foot">GitHub'da manuel inceleme bekler</span></article>
         <article class="metric-card"><span class="metric-label">İncelenecek taslak</span><strong id="draft-count" class="metric-value">—</strong><span class="metric-foot">Otomatik uygulama kapalı</span></article>
       </section>
 
@@ -73,17 +73,18 @@
           <div id="review-content" hidden>
             <div class="review-meta"><strong id="review-title"></strong><span id="review-status" class="status-tag"></span></div>
             <p id="review-location" class="muted small"></p>
+            <div id="review-links" class="review-links" hidden></div>
             <div id="diff-viewer" class="diff-viewer" aria-label="Yama karşılaştırması"></div>
             <p id="review-error" class="notice notice-error" hidden></p>
             <div id="review-actions" class="review-actions" hidden>
               <button id="reject-button" class="button button-danger" type="button">Reddet</button>
-              <button id="approve-button" class="button button-primary" type="button">Onayla ve uygula</button>
+              <button id="approve-button" class="button button-primary" type="button">Onayla ve PR aç</button>
             </div>
-            <p class="fine-print">Onaylanan yama yalnızca bu Git çalışma kopyasına uygulanır; yayına çıkması için ayrıca Git dağıtımı gerekir. Önce dosyanın çalışma ağacında temiz olduğundan emin olun.</p>
+            <p class="fine-print">Onaylanan yama ayrı bir GitHub dalında taslak PR olarak hazırlanır. Canlıya çıkması için GitHub'da PR'ın ayrıca incelenip birleştirilmesi gerekir.</p>
           </div>
         </section>
       </div>
-      <footer class="footer"><button id="rollback-button" class="button button-quiet" type="button">Son düzeltmeyi geri al</button><span>AI yamaları hiçbir zaman kendiliğinden uygulanmaz.</span></footer>
+      <footer class="footer"><button id="rollback-button" class="button button-quiet" type="button">Son birleşen düzeltme için geri alma PR'ı aç</button><span>AI yamaları otomatik uygulanmaz veya birleştirilmez.</span></footer>
     </section>
   </main>
 </body>
