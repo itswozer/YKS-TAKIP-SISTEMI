@@ -8,6 +8,7 @@ const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
 const { rateLimit } = require("express-rate-limit");
 const { Pool } = require("pg");
+const { createSentinelRouter, initializeSentinelDatabase } = require("./sentinel");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -17,6 +18,7 @@ const AUTH_USERNAME = process.env.AUTH_USERNAME;
 const AUTH_PASSWORD_HASH = process.env.AUTH_PASSWORD_HASH;
 const JWT_SECRET = process.env.JWT_SECRET;
 const REGISTRATION_INVITE_CODE = process.env.REGISTRATION_INVITE_CODE;
+const SENTINEL_ADMIN_USERNAME = (process.env.SENTINEL_ADMIN_USERNAME || AUTH_USERNAME || "").trim().toLowerCase();
 const TOKEN_ISSUER = "hedef-yks-api";
 const TOKEN_AUDIENCE = "hedef-yks-client";
 const MAX_BODY_BYTES = 256 * 1024;
@@ -395,6 +397,13 @@ app.put("/api/data/:key", verifyToken, async (req, res) => {
   return res.json({ saved: true });
 });
 
+app.use("/api/sentinel", createSentinelRouter({
+  pool,
+  verifyToken,
+  adminUsername: SENTINEL_ADMIN_USERNAME,
+  projectRoot: require("node:path").resolve(__dirname, ".."),
+}));
+
 app.use((error, req, res, next) => {
   if (error instanceof SyntaxError && "body" in error) {
     return res.status(400).json({ error: "Gönderilen JSON formatı geçersiz." });
@@ -408,6 +417,7 @@ app.use((error, req, res, next) => {
 async function startServer() {
   if (pool) {
     await initializeDatabase();
+    await initializeSentinelDatabase(pool);
     console.log("PostgreSQL bağlantısı hazır.");
   }
   app.listen(PORT, HOST, () => {

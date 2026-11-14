@@ -53,6 +53,8 @@ YKS-TAKIP-SISTEMI/
 ├── index.html       # Ana sayfa ve arayüz iskeleti
 ├── style.css        # Tasarım, tema değişkenleri ve stiller
 ├── script.js        # Net hesaplama, soru takibi ve veri yönetimi
+├── sentinel.js      # Tarayıcı hata/API gözlemcisi
+├── admin/sentinel/  # Yönetici Sentinel kontrol paneli
 ├── backend/         # Express API ve kullanıcı kurulumu
 └── README.md        # Proje dokümantasyonu
 ```
@@ -96,3 +98,19 @@ YKS-TAKIP-SISTEMI/
 7. İlk açılışta mevcut `AUTH_USERNAME` hesabı PostgreSQL'e aktarılır. Giriş ekranındaki **Hesap oluştur** bağlantısı davet koduyla yeni kullanıcı kaydeder. Her hesap kendi verilerini veritabanına kaydeder; aynı hesap farklı cihazlarda verilerini eşitler.
 
 > `backend/.env` ve `backend/node_modules` GitHub'a yüklenmemelidir. `.env` içindeki gizli değerleri yalnızca Render'ın Environment ayarlarına kendiniz girin. Daha önce tarayıcınızda yerel olarak tuttuğunuz eski panel verileri hesaba otomatik aktarılmaz; yeni veriler girişten sonra bulutla eşitlenir. Davet koduna sahip olanlar kendi hesabını açabilir.
+
+## Sentinel hata gözlemi ve yönetici paneli
+
+`sentinel.js`, tarayıcı çalışma zamanı hatalarını, yakalanmamış Promise retlerini, `fetch` ve XHR/axios HTTP/ağ hatalarını izler. Üçüncü taraf adresleri ve hata raporlama uç noktası izlenmez; raporlardan URL sorgu parametreleri ve e-posta adresleri ayıklanır. Raporlar güvenilmeyen girdi sayılır ve kaynak dosya istemcinin gönderdiği yola göre okunmaz: yalnızca stack içindeki allowlist dosya adları (`script.js`, `sentinel.js`, `service-worker.js`) kullanılabilir.
+
+Kontrol paneli site adresinizde `/admin/sentinel/` yolundadır. Mevcut giriş token'ını kullanır ve yalnızca `SENTINEL_ADMIN_USERNAME` ile belirlenen kullanıcıya açıktır (ayarlanmazsa `AUTH_USERNAME` kullanılır). Rapor ve yama taslaklarının kalıcı saklanması için `DATABASE_URL`/PostgreSQL gereklidir; tablo uygulama başlarken oluşturulur.
+
+Yapay zeka taslağı üretmek için backend ortam değişkenlerini ayarlayın:
+
+* `SENTINEL_LLM_ENDPOINT`: OpenAI uyumlu HTTPS `chat/completions` uç noktası
+* `SENTINEL_LLM_API_KEY`: yalnızca backend ortamında saklanan API anahtarı
+* `SENTINEL_LLM_MODEL`: sağlayıcının model adı
+
+Bu değişkenler tanımlı değilse olaylar kaydedilir ancak AI taslağı oluşturulmaz. Kaynak kodu yapılandırdığınız LLM sağlayıcısına gönderileceğinden, sağlayıcının veri işleme koşullarını ayrıca değerlendirin. Üretilen diff tek bir allowlist dosyasıyla sınırlandırılır; yalnızca yönetici **Onayla ve uygula** seçeneğini açıkça onayladıktan, Git çalışma kopyası temiz ve yama `git apply --check` doğrulamasından geçtikten sonra uygulanır. Bu işlem otomatik canlı yayın yapmaz; dağıtım yine Git/hosting akışınızdan yapılmalıdır. Rollback son uygulanmış Sentinel diff'ini tersine çevirir ve sonradan yapılan dosya değişiklikleriyle çakışırsa güvenli biçimde başarısız olur. Otomatik mod bilerek etkinleştirilmemiştir.
+
+API adresini değiştirirseniz `index.html` ile `admin/sentinel/index.html` içindeki `api-base-url` ve CSP `connect-src` izinlerini de güncelleyin.

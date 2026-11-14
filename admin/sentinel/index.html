@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="api-base-url" content="https://yks-takip-sistemi-r77w.onrender.com">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://yks-takip-sistemi-r77w.onrender.com http://localhost:5173; img-src 'self' data:">
+  <meta name="theme-color" content="#090d16">
+  <title>Sentinel Kontrol Paneli | Hedef YKS</title>
+  <link rel="stylesheet" href="sentinel.css">
+  <script src="../../sentinel.js" defer></script>
+  <script src="sentinel-admin.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../index.html"><span class="brand-icon">S</span><span>Sentinel<span class="brand-muted"> / Control</span></span></a>
+      <div class="top-actions">
+        <span class="mode-pill"><span class="pulse"></span> MANUEL ONAY MODU</span>
+        <button id="logout-button" class="button button-quiet" type="button" hidden>Oturumu kapat</button>
+      </div>
+    </header>
+
+    <section id="login-view" class="login-view" hidden>
+      <div class="login-card">
+        <p class="eyebrow">YÖNETİCİ ERİŞİMİ</p>
+        <h1>Kontrol paneli</h1>
+        <p class="muted">Mevcut Hedef YKS hesabınızla giriş yapın. Panel yalnızca yapılandırılmış Sentinel yöneticisine açıktır.</p>
+        <form id="login-form">
+          <label for="username">Kullanıcı adı</label>
+          <input id="username" name="username" autocomplete="username" required>
+          <label for="password">Şifre</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button class="button button-primary full-width" type="submit">Giriş yap</button>
+        </form>
+        <p id="login-error" class="notice notice-error" role="alert" hidden></p>
+        <a class="back-link" href="../../index.html">← Hedef YKS'ye dön</a>
+      </div>
+    </section>
+
+    <section id="dashboard-view" hidden>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">SİSTEM GÖZLEMİ</p>
+          <h1>Kontrol paneli</h1>
+          <p class="muted">Olayları inceleyin; yapay zeka önerilerini değerlendirip açıkça onaylayın.</p>
+        </div>
+        <button id="refresh-button" class="button button-secondary" type="button">Yenile</button>
+      </div>
+
+      <div id="global-notice" class="notice" role="status" hidden></div>
+      <section class="health-grid" aria-label="Sağlık özeti">
+        <article class="metric-card"><span class="metric-label">Sistem durumu</span><strong id="health-state" class="metric-value"><span class="status-dot"></span> Bağlanıyor</strong><span id="health-detail" class="metric-foot">API durumu denetleniyor</span></article>
+        <article class="metric-card"><span class="metric-label">Yakalanan hata</span><strong id="total-count" class="metric-value">—</strong><span class="metric-foot">Son 90 gün içinde</span></article>
+        <article class="metric-card"><span class="metric-label">Uygulanan düzeltme</span><strong id="applied-count" class="metric-value">—</strong><span class="metric-foot">Yönetici onayıyla</span></article>
+        <article class="metric-card"><span class="metric-label">İncelenecek taslak</span><strong id="draft-count" class="metric-value">—</strong><span class="metric-foot">Otomatik uygulama kapalı</span></article>
+      </section>
+
+      <section class="settings-card">
+        <div><p class="eyebrow">GÜVENLİK POLİTİKASI</p><h2>Mod seçimi</h2><p class="muted">Otomatik canlı uygulama bu kurulumda kullanılamaz. Her yama için yönetici onayı gerekir.</p></div>
+        <label class="mode-select-label" for="mode-select">Çalışma modu<select id="mode-select" disabled><option>Manuel Onay — zorunlu</option></select></label>
+      </section>
+
+      <div class="content-grid">
+        <section class="panel incidents-panel">
+          <div class="panel-heading"><div><p class="eyebrow">GERÇEK ZAMANLI</p><h2>Olay akışı</h2></div><span id="incident-count" class="count-badge">0 olay</span></div>
+          <div id="incident-list" class="incident-list" aria-live="polite"></div>
+        </section>
+
+        <section class="panel review-panel">
+          <div class="panel-heading"><div><p class="eyebrow">YÖNETİCİ İNCELEMESİ</p><h2>Kod karşılaştırma</h2></div></div>
+          <div id="empty-review" class="empty-state">Diff incelemek için olay akışından bir AI taslağı seçin.</div>
+          <div id="review-content" hidden>
+            <div class="review-meta"><strong id="review-title"></strong><span id="review-status" class="status-tag"></span></div>
+            <p id="review-location" class="muted small"></p>
+            <div id="diff-viewer" class="diff-viewer" aria-label="Yama karşılaştırması"></div>
+            <p id="review-error" class="notice notice-error" hidden></p>
+            <div id="review-actions" class="review-actions" hidden>
+              <button id="reject-button" class="button button-danger" type="button">Reddet</button>
+              <button id="approve-button" class="button button-primary" type="button">Onayla ve uygula</button>
+            </div>
+            <p class="fine-print">Onaylanan yama yalnızca bu Git çalışma kopyasına uygulanır; yayına çıkması için ayrıca Git dağıtımı gerekir. Önce dosyanın çalışma ağacında temiz olduğundan emin olun.</p>
+          </div>
+        </section>
+      </div>
+      <footer class="footer"><button id="rollback-button" class="button button-quiet" type="button">Son düzeltmeyi geri al</button><span>AI yamaları hiçbir zaman kendiliğinden uygulanmaz.</span></footer>
+    </section>
+  </main>
+</body>
+</html>

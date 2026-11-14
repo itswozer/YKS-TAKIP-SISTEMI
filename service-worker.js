@@ -1,10 +1,11 @@
 "use strict";
 
-const CACHE_NAME = "hedef-yks-shell-v2";
+const CACHE_NAME = "hedef-yks-shell-v3";
 const APP_SHELL_URLS = [
   "index.html",
   "style.css",
   "script.js",
+  "sentinel.js",
   "manifest.webmanifest",
   "icon.svg",
   "icon-192.png",
